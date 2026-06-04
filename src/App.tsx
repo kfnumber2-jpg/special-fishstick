@@ -1,4 +1,4 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   motion,
   useMotionValue,
@@ -8,6 +8,7 @@ import {
   useTransform,
   type Variants,
 } from "motion/react";
+import { startCheckout } from "./checkout";
 import "./App.css";
 
 /* ============================================================
@@ -149,11 +150,11 @@ function Tilt({
    Content
    ============================================================ */
 const CRED = [
-  "Professional Athletes",
-  "Collegiate Programs",
-  "Top U.S. Talent",
-  "Olympic Hopefuls",
-  "Draft Prospects",
+  "Chris Henry Jr.",
+  "Adam “Pacman” Jones",
+  "Darqueze Dennard",
+  "Ace Olston",
+  "DeMarcus Henry",
 ];
 
 const PILLARS = [
@@ -188,13 +189,49 @@ const INCLUDED = [
 
 const STATS = [
   { num: "12+", label: "Years coaching elite athletes" },
-  { num: "30+", label: "Pro & collegiate athletes trained" },
+  { num: "NFL", label: "Pros trained at the highest level" },
   { num: "100+", label: "On-demand training sessions" },
   { num: "4.9★", label: "Average athlete rating" },
 ];
 
+/* Real athletes coached — speed, explosion, and agility work. */
+const ATHLETES = [
+  {
+    name: "Chris Henry Jr.",
+    org: "Ohio State",
+    level: "Collegiate",
+    focus: "Speed & Agility",
+  },
+  {
+    name: "Adam “Pacman” Jones",
+    org: "NFL — Professional",
+    level: "Pro",
+    focus: "Speed & Explosion",
+  },
+  {
+    name: "Darqueze Dennard",
+    org: "NFL — Professional",
+    level: "Pro",
+    focus: "Agility & Speed",
+  },
+  {
+    name: "Ace Olston",
+    org: "Notre Dame commit",
+    level: "Collegiate",
+    focus: "Speed & Explosion",
+  },
+  {
+    name: "DeMarcus Henry",
+    org: "Top-ranked HS basketball",
+    level: "Elite Prep",
+    focus: "Speed, Explosion & Agility",
+  },
+];
+
 type Tier = {
   name: string;
+  /** Maps to a Stripe Price ID server-side (see server/index.js). */
+  priceKey: string;
   price: string;
   cadence: string;
   tagline: string;
@@ -207,6 +244,7 @@ type Tier = {
 const TIERS: Tier[] = [
   {
     name: "Rookie",
+    priceKey: "rookie",
     price: "$49",
     cadence: "/ month",
     tagline: "Get the full course and start building your base.",
@@ -221,6 +259,7 @@ const TIERS: Tier[] = [
   },
   {
     name: "Varsity",
+    priceKey: "varsity",
     price: "$99",
     cadence: "/ month",
     tagline: "Coaching, accountability, and form feedback every week.",
@@ -236,6 +275,7 @@ const TIERS: Tier[] = [
   },
   {
     name: "Elite",
+    priceKey: "elite",
     price: "$199",
     cadence: "/ month",
     tagline: "Direct 1:1 access — train like the pros I work with.",
@@ -252,6 +292,7 @@ const TIERS: Tier[] = [
 
 const ONE_TIME: Tier = {
   name: "The Full Course",
+  priceKey: "full_course",
   price: "$249",
   cadence: "one-time",
   tagline: "Buy once. Own the entire system for life — no subscription.",
@@ -389,12 +430,13 @@ function PriceCard({ t }: { t: Tier }) {
         <span className="price__cadence">{t.cadence}</span>
       </div>
 
-      <a
+      <button
+        type="button"
         className={`btn ${t.featured || t.oneTime ? "btn--primary" : "btn--ghost"} price__cta`}
-        href="#signup"
+        onClick={() => startCheckout(t.priceKey)}
       >
         {t.cta}
-      </a>
+      </button>
 
       <ul className="price__features">
         {t.features.map((f) => (
@@ -417,11 +459,62 @@ function PriceCard({ t }: { t: Tier }) {
   );
 }
 
+/** Banner shown when Stripe redirects back after checkout. */
+function CheckoutNotice() {
+  // Read the redirect result once, on first render.
+  const [status, setStatus] = useState<"success" | "cancelled" | null>(() => {
+    const c = new URLSearchParams(window.location.search).get("checkout");
+    return c === "success" || c === "cancelled" ? c : null;
+  });
+
+  useEffect(() => {
+    if (!status) return;
+    // Clean the query string so the banner doesn't persist on refresh.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("checkout");
+    url.searchParams.delete("session_id");
+    window.history.replaceState({}, "", url.pathname + url.hash);
+  }, [status]);
+
+  if (!status) return null;
+
+  return (
+    <motion.div
+      className={`notice notice--${status}`}
+      role="status"
+      initial={{ y: -60, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+    >
+      {status === "success" ? (
+        <span>
+          🎉 You're in! Your training course is unlocked — check your email for
+          access details.
+        </span>
+      ) : (
+        <span>
+          Checkout cancelled — no charge was made. Your spot is still here when
+          you're ready.
+        </span>
+      )}
+      <button
+        type="button"
+        className="notice__close"
+        aria-label="Dismiss"
+        onClick={() => setStatus(null)}
+      >
+        ✕
+      </button>
+    </motion.div>
+  );
+}
+
 export default function App() {
   const reduce = useReducedMotion();
 
   return (
     <div className="site">
+      <CheckoutNotice />
       <nav className="nav">
         <div className="shell nav__inner">
           <a className="brand" href="#top">
@@ -492,6 +585,28 @@ export default function App() {
               ))}
             </motion.div>
           </ScrollPop>
+
+          <Reveal className="athletes__head">
+            <motion.span className="eyebrow" variants={rise}>
+              Athletes I've personally trained
+            </motion.span>
+          </Reveal>
+
+          <div className="athletes">
+            {ATHLETES.map((a) => (
+              <ScrollPop key={a.name} intensity={0.9}>
+                <Tilt className="athlete" max={7}>
+                  <div className="price__sheen" aria-hidden />
+                  <span className="athlete__level">{a.level}</span>
+                  <h3 className="athlete__name">{a.name}</h3>
+                  <p className="athlete__org">{a.org}</p>
+                  <p className="athlete__focus">
+                    <span aria-hidden>⚡</span> {a.focus}
+                  </p>
+                </Tilt>
+              </ScrollPop>
+            ))}
+          </div>
         </section>
 
         {/* The course / pillars */}
@@ -623,13 +738,16 @@ export default function App() {
                 className="cta__form"
                 onSubmit={(e) => {
                   e.preventDefault();
-                  alert(
-                    "Thanks! This is where checkout / sign-up would connect. Wire it to your payment provider to go live.",
-                  );
+                  const data = new FormData(e.currentTarget);
+                  const email = String(data.get("email") ?? "");
+                  // Default sign-up routes to the most popular tier; Stripe
+                  // collects payment and confirms the email from here.
+                  startCheckout("varsity", email);
                 }}
               >
                 <input
                   type="email"
+                  name="email"
                   required
                   placeholder="you@email.com"
                   aria-label="Email address"

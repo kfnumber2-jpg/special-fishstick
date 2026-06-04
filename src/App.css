@@ -48,6 +48,46 @@
 }
 
 /* ============================================================
+   Checkout notice banner
+   ============================================================ */
+.notice {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  padding: 0.9rem 3rem 0.9rem 1.25rem;
+  text-align: center;
+  font-size: var(--step--1);
+  color: var(--accent-ink);
+  background: var(--accent);
+}
+.notice--cancelled {
+  color: var(--ink);
+  background: var(--bg-raised);
+  border-bottom: 1px solid var(--line-strong);
+}
+.notice__close {
+  position: absolute;
+  right: 1rem;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font-size: 0.9rem;
+  opacity: 0.7;
+}
+.notice__close:hover {
+  opacity: 1;
+}
+
+/* ============================================================
    Nav
    ============================================================ */
 .nav {
@@ -411,6 +451,78 @@
   color: var(--ink-faint);
   letter-spacing: 0.02em;
   margin-top: 0.6rem;
+}
+
+/* ============================================================
+   Athletes trained
+   ============================================================ */
+.athletes__head {
+  margin-top: clamp(2.5rem, 1.5rem + 3vw, 4rem);
+  margin-bottom: 1.5rem;
+  text-align: center;
+  display: flex;
+  justify-content: center;
+}
+
+.athletes {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr));
+  gap: 1rem;
+}
+
+.athlete {
+  position: relative;
+  height: 100%;
+  background:
+    radial-gradient(
+      400px 160px at 50% 0%,
+      rgba(202, 255, 77, 0.08),
+      transparent 70%
+    ),
+    var(--bg-raised);
+  border: 1px solid var(--line);
+  border-radius: calc(var(--radius) + 4px);
+  padding: clamp(1.4rem, 1.1rem + 1vw, 1.9rem);
+  overflow: hidden;
+  transition:
+    border-color 0.3s var(--ease),
+    box-shadow 0.3s var(--ease);
+}
+.athlete:hover {
+  border-color: var(--accent);
+  box-shadow: 0 24px 60px -36px var(--accent-glow);
+}
+
+.athlete__level {
+  display: inline-block;
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--accent);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 0.3em 0.7em;
+}
+
+.athlete__name {
+  font-size: var(--step-1);
+  margin-top: 1rem;
+  letter-spacing: -0.02em;
+}
+
+.athlete__org {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+  margin-top: 0.3rem;
+}
+
+.athlete__focus {
+  font-size: var(--step--1);
+  color: var(--ink-faint);
+  margin-top: 1rem;
+  padding-top: 0.9rem;
+  border-top: 1px solid var(--line);
 }
 
 /* ============================================================

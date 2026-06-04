@@ -43,11 +43,49 @@ npm run preview  # serve the production build locally
   plain fade/rise, tilt and parallax switch off via `useReducedMotion()`, and
   CSS transitions are neutralized globally.
 
-## Wiring up checkout
+## Checkout (Stripe)
 
-The pricing CTAs link to the `#signup` section, and the form currently shows a
-placeholder `alert`. Point the buttons and the form submit at your payment
-provider (Stripe Checkout, etc.) to take real orders.
+Real Stripe Checkout is wired in. Each pricing button (and the final sign-up
+form) creates a Stripe Checkout Session server-side and redirects the buyer to
+Stripe's hosted payment page. Your secret key stays in `.env` and never reaches
+the browser.
+
+**Pieces:**
+
+| File | Role |
+| --- | --- |
+| `server/index.js` | Express server. `POST /api/create-checkout-session` creates the session; `/api/webhook` is a fulfillment stub; `/api/health` reports config status. |
+| `src/checkout.ts` | `startCheckout(priceKey, email?)` — calls the API and redirects to Stripe. |
+| `.env.example` | Template for your secret key + the four Price IDs. |
+
+**One-time setup:**
+
+1. `cp .env.example .env`
+2. In the [Stripe dashboard](https://dashboard.stripe.com/products), create a
+   Product + Price for each package. Make **Rookie / Varsity / Elite**
+   *recurring (monthly)* and **Full Course** a *one-time* price.
+3. Paste your `sk_...` secret key and the four `price_...` IDs into `.env`.
+
+**Run it (two processes — Vite + the API):**
+
+```bash
+npm run dev:all   # Vite on :5173 (proxies /api) + checkout server on :8787
+# or run them separately:
+npm run dev        # front-end only
+npm run server     # checkout API only
+```
+
+**Production:** `npm run build`, then `npm start` (serves `dist/` + the API
+from one Node process). Set `PUBLIC_URL` so Stripe's success/cancel redirects
+point at your domain.
+
+**Fulfillment:** add a webhook in Stripe pointing at `/api/webhook`, set
+`STRIPE_WEBHOOK_SECRET` in `.env`, and fill in the `checkout.session.completed`
+handler in `server/index.js` to grant course access on payment.
+
+> The price *labels* on the cards (`$49`, `$99`, …) are display copy in
+> `src/App.tsx`. The real amount charged comes from the Stripe Price you map to
+> each `priceKey` — keep the two in sync.
 
 ## Design direction
 
