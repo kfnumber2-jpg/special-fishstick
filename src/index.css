@@ -15,10 +15,13 @@
   --ink-soft: #b6b4ad;
   --ink-faint: #6f6d67;
 
-  /* Accent — chartreuse on near-black */
+  /* Accent — chartreuse on near-black, with an electric energy second */
   --accent: #caff4d;
   --accent-ink: #0a0a0b;
   --accent-glow: rgba(202, 255, 77, 0.4);
+  --accent-2: #ff5a3c;
+  --accent-2-glow: rgba(255, 90, 60, 0.4);
+  --grid-line: rgba(255, 255, 255, 0.05);
 
   /* Type */
   --sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
