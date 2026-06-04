@@ -32,26 +32,8 @@ function Reveal({
   children,
   className,
   id,
-};
-
-/* A card that "pops out" of the page when scrolled into view. */
-const pop: Variants = {
-  hidden: { opacity: 0, y: 40, rotateX: -22, scale: 0.96 },
-  show: {
-    opacity: 1,
-    y: 0,
-    rotateX: 0,
-    scale: 1,
-    transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1] },
-  },
-};
-
-function Reveal({
-  children,
-  className,
-  amount = 0.25,
 }: {
-  children: ReactNode;
+  children: React.ReactNode;
   className?: string;
   id?: string;
 }) {
@@ -319,33 +301,6 @@ function Hero() {
   const rotateGrid = useTransform(scrollYProgress, [0, 1], [0, reduce ? 0 : 18]);
   const fade = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
-  // Global scroll progress bar
-  const { scrollYProgress } = useScroll();
-  const progressX = useSpring(scrollYProgress, {
-    stiffness: 120,
-    damping: 30,
-    mass: 0.3,
-  });
-
-  // Hero parallax
-  const heroRef = useRef<HTMLElement>(null);
-  const { scrollYProgress: heroP } = useScroll({
-    target: heroRef,
-    offset: ["start start", "end start"],
-  });
-  const heroY = useTransform(heroP, [0, 1], [0, reduce ? 0 : 140]);
-  const heroRotate = useTransform(heroP, [0, 1], [0, reduce ? 0 : -10]);
-  const heroFade = useTransform(heroP, [0, 0.85], [1, 0]);
-  const orbA = useTransform(heroP, [0, 1], [0, reduce ? 0 : -160]);
-  const orbB = useTransform(heroP, [0, 1], [0, reduce ? 0 : 160]);
-
-  // Pinned scene
-  const sceneRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress: sceneP } = useScroll({
-    target: sceneRef,
-    offset: ["start start", "end end"],
-  });
-
   return (
     <header className="hero" id="top" ref={ref}>
       <motion.div className="hero__grid" style={{ rotateX: rotateGrid }} aria-hidden />
@@ -492,7 +447,7 @@ export default function App() {
       {/* Credibility marquee */}
       <div className="marquee" aria-hidden="true">
         <motion.div
-          className="cred__row"
+          className="marquee__row"
           animate={reduce ? undefined : { x: ["0%", "-50%"] }}
           transition={{ duration: 24, ease: "linear", repeat: Infinity }}
         >
