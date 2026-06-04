@@ -1,8 +1,22 @@
-# Fishstick Studio — studio-grade starter
+# Apex Performance — athletic training sales site
 
-A small, opinionated starting point for building distinctive websites:
-**Vite + React + TypeScript + [Motion](https://motion.dev)**, with a real
-design-token system and scroll-reveal animation already wired in.
+A dynamic, 3D, scroll-driven one-page site for selling a complete athletic
+training course. Built with **Vite + React + TypeScript + [Motion](https://motion.dev)**.
+
+## What it does
+
+- **Sells the full course to everyone** — every plan includes the entire
+  training program, no locked modules.
+- **Three subscription tiers** (Foundation / Performance / Elite) **plus a
+  one-time purchase** for lifetime access.
+- **Credibility built in** — calls out training professional, collegiate, and
+  top U.S. athletes throughout.
+- **Motion on every scroll**: a sticky pinned 3D "system" scene where panels
+  rotate in and out, parallax hero, pop-in cards, pointer-tilt 3D cards, an
+  infinite credibility marquee, and a scroll-progress bar — all driving toward
+  the pricing CTA.
+- **Accessible**: honors `prefers-reduced-motion` (tilt, parallax, and looping
+  marquees switch off).
 
 ## Quick start
 
@@ -10,31 +24,25 @@ design-token system and scroll-reveal animation already wired in.
 npm install
 npm run dev      # local dev server with HMR
 npm run build    # typecheck (tsc) + production build to dist/
-npm run preview  # serve the production build locally
+npm run preview  # serve the production build
 ```
 
-## How it's organized
+## Where to edit
 
 | File | What lives there |
 | --- | --- |
-| `src/index.css` | **Design tokens** — color, fluid type scale, spacing, easing. Edit these first; the whole site moves with them. |
-| `src/App.css` | Component styles (nav, hero, cards, CTA, footer). |
-| `src/App.tsx` | The page + Motion animations (`rise`/`stagger` variants, a `Reveal` scroll wrapper, an infinite marquee). |
+| `src/index.css` | Design tokens — colors, the two accents, fluid type, spacing. |
+| `src/App.css` | All component styles (hero, pinned scene, pricing, etc.). |
+| `src/App.tsx` | Page + content arrays (`PLANS`, `ONE_TIME`, `DELIVERABLES`, `STATS`, `QUOTES`, `PHASES`) and all Motion logic. |
 
-## Motion notes
+### Make it yours
 
-- Entrance and scroll-reveal use shared `rise` / `stagger` variants.
-- `Reveal` animates a section once when ~25% of it enters the viewport.
-- `prefers-reduced-motion` is honored: the marquee and hover lifts switch
-  off via `useReducedMotion()`, and CSS transitions are neutralized globally.
+- **Pricing**: edit the `PLANS` array and `ONE_TIME` object in `src/App.tsx`.
+- **Brand name**: search/replace `Apex Performance`.
+- **Testimonials**: the `QUOTES` are clearly-labeled samples — swap in real,
+  permissioned athlete quotes before going live.
+- **Checkout**: the CTA buttons are placeholders (`#start`). Wire them to your
+  payment provider (Stripe Checkout / Payment Links work well per plan).
 
-## Design direction
-
-One restrained palette, one bold accent (chartreuse on near-black), a serif
-display face (Instrument Serif) against a grotesk body (Inter), and generous
-whitespace. Swap the accent and fonts in `src/index.css` to rebrand.
-
----
-
-Scaffolded with `create-vite` (`react-ts`). Pairs well with the
-`frontend-design` and `impeccable` Claude Code plugins.
+> Note: stats and testimonials are placeholders. Use real numbers and only
+> athlete endorsements you have permission to publish.
