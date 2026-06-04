@@ -1,0 +1,28 @@
+# Netlify deploy configuration for APEX Performance.
+# Connect this repo in Netlify, set the environment variables (Stripe secret
+# key + the four Price IDs) under Site settings → Environment, and deploy.
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+  functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+# Route the front-end's /api calls to the serverless functions.
+[[redirects]]
+  from = "/api/create-checkout-session"
+  to = "/.netlify/functions/create-checkout-session"
+  status = 200
+
+[[redirects]]
+  from = "/api/webhook"
+  to = "/.netlify/functions/webhook"
+  status = 200
+
+# SPA fallback — everything else serves the built index.html.
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

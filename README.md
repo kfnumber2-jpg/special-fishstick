@@ -77,15 +77,39 @@ npm run server     # checkout API only
 
 **Production:** `npm run build`, then `npm start` (serves `dist/` + the API
 from one Node process). Set `PUBLIC_URL` so Stripe's success/cancel redirects
-point at your domain.
+point at your domain. For Netlify, see below.
 
 **Fulfillment:** add a webhook in Stripe pointing at `/api/webhook`, set
-`STRIPE_WEBHOOK_SECRET` in `.env`, and fill in the `checkout.session.completed`
-handler in `server/index.js` to grant course access on payment.
+`STRIPE_WEBHOOK_SECRET`, and fill in the `checkout.session.completed` handler
+(in `lib/checkout-core.js`'s callers: `server/index.js` for local,
+`netlify/functions/webhook.mjs` for production) to grant course access.
 
 > The price *labels* on the cards (`$49`, `$99`, …) are display copy in
 > `src/App.tsx`. The real amount charged comes from the Stripe Price you map to
 > each `priceKey` — keep the two in sync.
+
+## Deploy to Netlify
+
+The site deploys as a static front-end (`dist/`) plus serverless functions for
+checkout. Config lives in `netlify.toml`, which routes `/api/*` to the
+functions in `netlify/functions/`.
+
+1. Push this repo to GitHub (done) and, in Netlify, **Add new site → Import an
+   existing project**, then pick this repo. Netlify reads `netlify.toml`
+   automatically (build `npm run build`, publish `dist`, functions
+   `netlify/functions`).
+2. Under **Site settings → Environment variables**, add:
+   `STRIPE_SECRET_KEY`, `PRICE_ROOKIE`, `PRICE_VARSITY`, `PRICE_ELITE`,
+   `PRICE_FULL_COURSE` (and optionally `STRIPE_WEBHOOK_SECRET`, `PUBLIC_URL`).
+3. **Deploy.** Your live URL will be `https://<your-site>.netlify.app` (add a
+   custom domain in Netlify if you have one).
+4. For fulfillment, create a Stripe webhook pointing at
+   `https://<your-site>.netlify.app/api/webhook` and set
+   `STRIPE_WEBHOOK_SECRET` to its signing secret.
+
+> Local dev uses the Express server (`lib/checkout-core.js` is shared, so dev
+> and production behave the same). To test the Netlify build locally instead,
+> install the Netlify CLI and run `netlify dev`.
 
 ## Design direction
 
