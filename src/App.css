@@ -1243,6 +1243,57 @@
   transform: translateY(-2px);
 }
 
+.cf__controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  margin-top: 1.5rem;
+}
+.cf__playpause {
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 1px solid var(--line-strong);
+  background: var(--bg-raised);
+  color: var(--ink);
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition:
+    border-color 0.25s var(--ease),
+    color 0.25s var(--ease);
+}
+.cf__playpause:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.cf__controls .cf__thumbs {
+  margin-top: 0;
+}
+
+.cf__dots {
+  display: flex;
+  justify-content: center;
+  gap: 0.45rem;
+  margin-top: 1rem;
+}
+.cf__dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--line-strong);
+  transition:
+    background 0.25s var(--ease),
+    width 0.25s var(--ease);
+}
+.cf__dot--on {
+  background: var(--accent);
+  width: 22px;
+  border-radius: 999px;
+}
+
 /* Lightbox */
 .lightbox {
   position: fixed;

@@ -628,28 +628,48 @@ function CheckoutNotice() {
   );
 }
 
-/* 3D coverflow carousel — swipe/drag, arrows, and a thumbnail strip. */
+/* 3D coverflow carousel — auto-advance, swipe/drag, arrows, thumbnails. */
 function Coverflow({
   items,
   onOpen,
+  paused = false,
+  interval = 6000,
 }: {
   items: Slide[];
   onOpen: (s: Slide) => void;
+  paused?: boolean; // pause from outside (e.g. lightbox open)
+  interval?: number;
 }) {
   const reduce = useReducedMotion();
+  const len = items.length;
   const [index, setIndex] = useState(0);
+  const [hovering, setHovering] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
 
-  const clamp = (n: number) => Math.max(0, Math.min(items.length - 1, n));
-  const go = (n: number) => setIndex(clamp(n));
+  // Wrap-around navigation so the reel loops.
+  const go = (n: number) => setIndex(((n % len) + len) % len);
+
+  const playing = !reduce && !paused && !hovering && !userPaused && len > 1;
+
+  // Advance after `interval`; the timer resets on any index change (manual or
+  // auto), so manual navigation gives you a fresh full beat before it flips.
+  useEffect(() => {
+    if (!playing) return;
+    const id = setTimeout(() => setIndex((i) => (i + 1) % len), interval);
+    return () => clearTimeout(id);
+  }, [index, playing, len, interval]);
 
   return (
-    <div className="cf">
+    <div
+      className="cf"
+      onMouseEnter={() => setHovering(true)}
+      onMouseLeave={() => setHovering(false)}
+    >
       <button
         type="button"
         className="cf__arrow cf__arrow--prev"
         aria-label="Previous"
         onClick={() => go(index - 1)}
-        disabled={index === 0}
       >
         ‹
       </button>
@@ -704,7 +724,6 @@ function Coverflow({
         className="cf__arrow cf__arrow--next"
         aria-label="Next"
         onClick={() => go(index + 1)}
-        disabled={index === items.length - 1}
       >
         ›
       </button>
@@ -732,19 +751,42 @@ function Coverflow({
         </AnimatePresence>
       </div>
 
-      {/* Thumbnail strip */}
-      <div className="cf__thumbs" role="tablist" aria-label="Choose a slide">
-        {items.map((s, i) => (
+      {/* Thumbnail strip + autoplay toggle */}
+      <div className="cf__controls">
+        {!reduce && len > 1 && (
           <button
             type="button"
-            key={s.image}
-            className={`cf__thumb ${i === index ? "cf__thumb--on" : ""}`}
-            aria-label={s.caption}
-            aria-selected={i === index}
-            onClick={() => go(i)}
+            className="cf__playpause"
+            aria-label={userPaused ? "Start autoplay" : "Pause autoplay"}
+            aria-pressed={!userPaused}
+            onClick={() => setUserPaused((p) => !p)}
           >
-            <img src={s.image} alt="" draggable={false} loading="lazy" />
+            {userPaused ? "▶" : "❚❚"}
           </button>
+        )}
+        <div className="cf__thumbs" role="tablist" aria-label="Choose a slide">
+          {items.map((s, i) => (
+            <button
+              type="button"
+              key={s.image}
+              className={`cf__thumb ${i === index ? "cf__thumb--on" : ""}`}
+              aria-label={s.caption}
+              aria-selected={i === index}
+              onClick={() => go(i)}
+            >
+              <img src={s.image} alt="" draggable={false} loading="lazy" />
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Progress dots double as an at-a-glance position indicator. */}
+      <div className="cf__dots" aria-hidden>
+        {items.map((s, i) => (
+          <span
+            key={s.image}
+            className={`cf__dot ${i === index ? "cf__dot--on" : ""}`}
+          />
         ))}
       </div>
     </div>
@@ -809,6 +851,7 @@ function Gallery() {
         key={tab}
         items={tab === "videos" ? VIDEOS : PHOTOS}
         onOpen={open}
+        paused={Boolean(active)}
       />
 
       <AnimatePresence>
@@ -852,7 +895,12 @@ function Gallery() {
                   />
                 </div>
               ) : active.slide.videoSrc ? (
-                <video src={active.slide.videoSrc} controls autoPlay />
+                <video
+                  src={active.slide.videoSrc}
+                  controls
+                  autoPlay
+                  onEnded={() => setActive(null)}
+                />
               ) : (
                 <div className="lightbox__note">
                   <img src={active.slide.image} alt={active.slide.caption} />
