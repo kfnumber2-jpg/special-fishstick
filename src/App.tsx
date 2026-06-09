@@ -912,9 +912,9 @@ export default function App() {
             reserved.
           </span>
           <span className="footer__legal">
-            <a href="#">Privacy</a>
-            <a href="#">Terms</a>
-            <a href="#">Refund policy</a>
+            <a href="/privacy.html">Privacy</a>
+            <a href="/terms.html">Terms</a>
+            <a href="/refund.html">Refund policy</a>
           </span>
         </div>
       </footer>

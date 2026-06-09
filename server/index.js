@@ -13,6 +13,7 @@ import {
   createCheckoutSession,
   isConfigured,
 } from "../lib/checkout-core.js";
+import { fulfillOrder } from "../lib/fulfillment.js";
 
 const PORT = process.env.PORT || 8787;
 const app = express();
@@ -45,7 +46,7 @@ app.post("/api/create-checkout-session", async (req, res) => {
 app.post(
   "/api/webhook",
   express.raw({ type: "application/json" }),
-  (req, res) => {
+  async (req, res) => {
     const whSecret = process.env.STRIPE_WEBHOOK_SECRET;
     if (!process.env.STRIPE_SECRET_KEY || !whSecret) return res.status(200).end();
 
@@ -62,13 +63,13 @@ app.post(
       return res.status(400).send(`Webhook Error: ${err.message}`);
     }
 
-    if (event.type === "checkout.session.completed") {
-      const session = event.data.object;
-      // TODO: grant course access for session.customer_details?.email /
-      // session.metadata.package (send credentials, add to community, etc.).
-      console.log(
-        `✅ Payment complete: ${session.metadata?.package} for ${session.customer_details?.email}`,
-      );
+    try {
+      if (event.type === "checkout.session.completed") {
+        await fulfillOrder(event.data.object);
+      }
+    } catch (err) {
+      console.error("Fulfillment failed:", err.message);
+      return res.status(500).send("Fulfillment error");
     }
     res.json({ received: true });
   },
