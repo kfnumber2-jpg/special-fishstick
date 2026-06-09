@@ -203,14 +203,19 @@ handler is currently a stub you can fill in later.
 ## 8. Good next steps (not done yet)
 
 - ~~Confirm athlete name spellings~~ — confirmed correct.
+- ~~Add legal pages~~ — done (`public/privacy.html`, `terms.html`,
+  `refund.html`); **review the template wording** with a professional and set
+  the "Last updated" dates.
+- ~~Scaffold webhook fulfillment~~ — done (`lib/fulfillment.js`); **implement
+  the delivery TODO** (email login / grant course access) when ready.
 - **Replace the sample testimonials** with real, approved quotes (`TESTIMONIALS`
   in `src/App.tsx`).
 - **Rename the brand** from "APEX Performance" if you have a real business name
   (also update the footer contact email `coach@apexperformance.com`).
 - **Replace placeholder stats** (years, ratings) with your real numbers.
-- **Add real legal pages** — the footer Privacy/Terms/Refund links point to `#`.
-- **Fill in webhook fulfillment** so buyers automatically get course access.
-- Optionally **merge the branch into `main`** to simplify Netlify deploys.
+
+> **Deploy branch:** there is no `main` branch. Point Netlify at
+> **`claude/upbeat-allen-XJ5mf`**, which holds all the latest clean work.
 
 ---
 
