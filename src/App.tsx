@@ -324,6 +324,49 @@ const FAQ = [
     q: "What equipment do I need?",
     a: "Most of the program runs with a barbell, dumbbells, and open space. Home and full-gym variations are provided for every session.",
   },
+  {
+    q: "Can I cancel or change my plan?",
+    a: "Yes. Monthly tiers can be cancelled or changed anytime from your account — no contracts, no penalties. The one-time course is yours for life.",
+  },
+];
+
+/* How it works — three simple steps from sign-up to training. */
+const STEPS = [
+  {
+    k: "Pick your package",
+    body: "Choose a monthly coaching tier or buy the full course once. Checkout is secure and takes under a minute.",
+  },
+  {
+    k: "Unlock the full system",
+    body: "Instantly get every session, the 12-month program, nutrition, and recovery — on web and mobile.",
+  },
+  {
+    k: "Train, track, and level up",
+    body: "Follow the plan, log your progress, and watch your speed, power, and durability climb week over week.",
+  },
+];
+
+/* Sample testimonials — replace the quotes/names with real ones as you collect
+   them. Roles are used so nothing is misattributed before you have approvals. */
+const TESTIMONIALS = [
+  {
+    quote:
+      "The speed work changed my first step completely. By spring I was a different athlete — coaches noticed immediately.",
+    name: "Division I Wide Receiver",
+    meta: "Collegiate program",
+  },
+  {
+    quote:
+      "Same explosion training the pros run, broken down so I could actually do it on my own. My vertical and 40 both jumped.",
+    name: "Pro Defensive Back",
+    meta: "Professional athlete",
+  },
+  {
+    quote:
+      "My son went from middle of the pack to one of the most explosive kids on the floor. The plan just works.",
+    name: "Parent of a top HS recruit",
+    meta: "Elite prep basketball",
+  },
 ];
 
 /* ============================================================
@@ -522,11 +565,14 @@ export default function App() {
             APEX&nbsp;Performance
           </a>
           <div className="nav__links">
+            <a className="nav__hideable" href="#proof">
+              Results
+            </a>
             <a className="nav__hideable" href="#course">
               The Course
             </a>
-            <a className="nav__hideable" href="#proof">
-              Results
+            <a className="nav__hideable" href="#how">
+              How it works
             </a>
             <a className="btn btn--ghost" href="#pricing">
               Get started
@@ -651,6 +697,30 @@ export default function App() {
           </ScrollPop>
         </section>
 
+        {/* How it works */}
+        <section className="section" id="how">
+          <Reveal className="section__head section__head--center">
+            <motion.span className="eyebrow" variants={rise}>
+              How it works
+            </motion.span>
+            <motion.h2 className="section__title" variants={rise}>
+              From sign-up to <em>game-ready</em> in three steps.
+            </motion.h2>
+          </Reveal>
+
+          <div className="steps">
+            {STEPS.map((s, i) => (
+              <ScrollPop key={s.k} intensity={0.8}>
+                <article className="step">
+                  <span className="step__num">{i + 1}</span>
+                  <h3 className="step__title">{s.k}</h3>
+                  <p className="step__body">{s.body}</p>
+                </article>
+              </ScrollPop>
+            ))}
+          </div>
+        </section>
+
         {/* Pricing */}
         <section className="section" id="pricing">
           <Reveal className="section__head section__head--center">
@@ -692,6 +762,36 @@ export default function App() {
               <PriceCard t={ONE_TIME} />
             </div>
           </ScrollPop>
+        </section>
+
+        {/* Testimonials */}
+        <section className="section" id="testimonials">
+          <Reveal className="section__head section__head--center">
+            <motion.span className="eyebrow" variants={rise}>
+              In their words
+            </motion.span>
+            <motion.h2 className="section__title" variants={rise}>
+              Athletes don't guess. They <em>train with proof</em>.
+            </motion.h2>
+          </Reveal>
+
+          <div className="quotes">
+            {TESTIMONIALS.map((t) => (
+              <ScrollPop key={t.name} intensity={0.7}>
+                <Tilt className="quote" max={6}>
+                  <div className="price__sheen" aria-hidden />
+                  <span className="quote__mark" aria-hidden>
+                    &ldquo;
+                  </span>
+                  <p className="quote__text">{t.quote}</p>
+                  <div className="quote__by">
+                    <span className="quote__name">{t.name}</span>
+                    <span className="quote__meta">{t.meta}</span>
+                  </div>
+                </Tilt>
+              </ScrollPop>
+            ))}
+          </div>
         </section>
 
         {/* FAQ */}
@@ -766,11 +866,57 @@ export default function App() {
         </section>
       </main>
 
-      <footer className="shell footer">
-        <span>© {new Date().getFullYear()} APEX Performance Training</span>
-        <span>
-          Trusted by professional, collegiate &amp; top U.S. athletes
-        </span>
+      <footer className="footer">
+        <div className="shell footer__inner">
+          <div className="footer__brand">
+            <a className="brand" href="#top">
+              <span className="brand__mark" aria-hidden="true" />
+              APEX&nbsp;Performance
+            </a>
+            <p className="footer__tag">
+              The complete performance system trusted by professional,
+              collegiate, and top U.S. athletes.
+            </p>
+            <a className="btn btn--primary footer__cta" href="#pricing">
+              Get the course →
+            </a>
+          </div>
+
+          <nav className="footer__cols" aria-label="Footer">
+            <div className="footer__col">
+              <span className="footer__head">Explore</span>
+              <a href="#proof">Results</a>
+              <a href="#course">The Course</a>
+              <a href="#how">How it works</a>
+              <a href="#pricing">Packages</a>
+              <a href="#faq">FAQ</a>
+            </div>
+            <div className="footer__col">
+              <span className="footer__head">Get started</span>
+              <a href="#pricing">Monthly tiers</a>
+              <a href="#pricing">Buy the full course</a>
+              <a href="#signup">Sign up</a>
+            </div>
+            <div className="footer__col">
+              <span className="footer__head">Contact</span>
+              <a href="mailto:coach@apexperformance.com">Email the coach</a>
+              <a href="#faq">Support &amp; FAQ</a>
+              <a href="#signup">Book a consult</a>
+            </div>
+          </nav>
+        </div>
+
+        <div className="shell footer__bar">
+          <span>
+            © {new Date().getFullYear()} APEX Performance Training. All rights
+            reserved.
+          </span>
+          <span className="footer__legal">
+            <a href="#">Privacy</a>
+            <a href="#">Terms</a>
+            <a href="#">Refund policy</a>
+          </span>
+        </div>
       </footer>
     </div>
   );

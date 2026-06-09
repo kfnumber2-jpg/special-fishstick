@@ -38,6 +38,14 @@ coaching **tier** or **buy the whole course once**. Payments run through
 - **The course** — four pillars (Strength & Power, Speed & Agility, Mobility &
   Recovery, Nutrition & Mindset) + a "what's included" list (every package
   unlocks the full course).
+- **How it works** — three steps: pick a package → unlock the full system →
+  train, track, and level up.
+- **Testimonials** — three quote cards. ⚠️ These are **sample/placeholder
+  quotes with role-based names** (e.g. "Division I Wide Receiver") so nothing is
+  misattributed. Replace them with real, approved quotes in `src/App.tsx`
+  (`TESTIMONIALS`).
+- **Footer** — brand blurb, navigation columns, contact links, and
+  Privacy/Terms/Refund placeholders (the legal links currently point to `#`).
 - **Packages / pricing** — three monthly tiers + a set-apart one-time option:
   | Package | Price | Billing | Stripe `priceKey` |
   |---|---|---|---|
@@ -194,9 +202,13 @@ handler is currently a stub you can fill in later.
 
 ## 8. Good next steps (not done yet)
 
-- **Confirm athlete name spellings** in `src/App.tsx`.
-- **Rename the brand** from "APEX Performance" if you have a real business name.
+- ~~Confirm athlete name spellings~~ — confirmed correct.
+- **Replace the sample testimonials** with real, approved quotes (`TESTIMONIALS`
+  in `src/App.tsx`).
+- **Rename the brand** from "APEX Performance" if you have a real business name
+  (also update the footer contact email `coach@apexperformance.com`).
 - **Replace placeholder stats** (years, ratings) with your real numbers.
+- **Add real legal pages** — the footer Privacy/Terms/Refund links point to `#`.
 - **Fill in webhook fulfillment** so buyers automatically get course access.
 - Optionally **merge the branch into `main`** to simplify Netlify deploys.
 
