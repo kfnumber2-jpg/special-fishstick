@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  AnimatePresence,
   motion,
   useMotionValue,
   useReducedMotion,
@@ -369,6 +370,81 @@ const TESTIMONIALS = [
   },
 ];
 
+/* Results gallery — REPLACE these placeholders with your real media.
+   Photos: drop real images in public/gallery/ and update `image` + text.
+   Videos: add a `youtubeId` (e.g. "dQw4w9WgXcQ") OR a direct `videoSrc` (mp4).
+   Until then the lightbox shows the placeholder thumbnail. */
+type Slide = {
+  kind: "photo" | "video";
+  image: string; // shown in the carousel + thumbnail strip
+  caption: string; // title under the slide
+  desc: string; // description under the title
+  youtubeId?: string;
+  videoSrc?: string;
+};
+
+const PHOTOS: Slide[] = [
+  {
+    kind: "photo",
+    image: "/gallery/photo-1.svg",
+    caption: "+4\" vertical in 12 weeks",
+    desc: "Collegiate forward — explosive lower-body block added four inches to his standing vert.",
+  },
+  {
+    kind: "photo",
+    image: "/gallery/photo-2.svg",
+    caption: "Combine 40-yard prep",
+    desc: "Start mechanics and acceleration work dialed in ahead of pro day testing.",
+  },
+  {
+    kind: "photo",
+    image: "/gallery/photo-3.svg",
+    caption: "Pre-season strength block",
+    desc: "Periodized lifting that carried straight into in-season durability.",
+  },
+  {
+    kind: "photo",
+    image: "/gallery/photo-4.svg",
+    caption: "Explosive first-step work",
+    desc: "Reactive drills built the separation that shows up on game film.",
+  },
+  {
+    kind: "photo",
+    image: "/gallery/photo-5.svg",
+    caption: "Speed & agility ladder drills",
+    desc: "Footwork and change-of-direction patterns under controlled load.",
+  },
+  {
+    kind: "photo",
+    image: "/gallery/photo-6.svg",
+    caption: "Game-ready conditioning",
+    desc: "Energy-system work tuned to the demands of the sport.",
+  },
+];
+
+const VIDEOS: Slide[] = [
+  {
+    kind: "video",
+    image: "/gallery/video-1.svg",
+    caption: "Sprint mechanics breakdown",
+    desc: "A frame-by-frame look at the start, drive phase, and top-end posture.",
+  },
+  {
+    kind: "video",
+    image: "/gallery/video-2.svg",
+    caption: "Explosive lower-body session",
+    desc: "The exact power progression behind the vertical and 40 gains.",
+  },
+  {
+    kind: "video",
+    image: "/gallery/video-3.svg",
+    caption: "Change-of-direction drill",
+    desc: "Cutting and deceleration mechanics that translate to the field.",
+  },
+];
+
+type LightboxItem = { kind: "photo" | "video"; slide: Slide };
+
 /* ============================================================
    Hero with parallax 3D layers
    ============================================================ */
@@ -549,6 +625,250 @@ function CheckoutNotice() {
         ✕
       </button>
     </motion.div>
+  );
+}
+
+/* 3D coverflow carousel — swipe/drag, arrows, and a thumbnail strip. */
+function Coverflow({
+  items,
+  onOpen,
+}: {
+  items: Slide[];
+  onOpen: (s: Slide) => void;
+}) {
+  const reduce = useReducedMotion();
+  const [index, setIndex] = useState(0);
+
+  const clamp = (n: number) => Math.max(0, Math.min(items.length - 1, n));
+  const go = (n: number) => setIndex(clamp(n));
+
+  return (
+    <div className="cf">
+      <button
+        type="button"
+        className="cf__arrow cf__arrow--prev"
+        aria-label="Previous"
+        onClick={() => go(index - 1)}
+        disabled={index === 0}
+      >
+        ‹
+      </button>
+
+      <motion.div
+        className="cf__stage"
+        drag="x"
+        dragConstraints={{ left: 0, right: 0 }}
+        dragElastic={0.16}
+        onDragEnd={(_e, info) => {
+          if (info.offset.x < -60) go(index + 1);
+          else if (info.offset.x > 60) go(index - 1);
+        }}
+      >
+        {items.map((s, i) => {
+          const offset = i - index;
+          const abs = Math.abs(offset);
+          const isActive = offset === 0;
+          return (
+            <motion.button
+              type="button"
+              key={s.image}
+              className={`cf__slide ${isActive ? "cf__slide--active" : ""} ${
+                s.kind === "video" ? "cf__slide--video" : ""
+              }`}
+              aria-hidden={abs > 2}
+              tabIndex={isActive ? 0 : -1}
+              onClick={() => (isActive ? onOpen(s) : go(i))}
+              animate={{
+                x: `${offset * 56}%`,
+                rotateY: reduce ? 0 : -offset * 34,
+                scale: isActive ? 1 : 0.82,
+                opacity: abs > 2 ? 0 : 1,
+                filter: isActive ? "brightness(1)" : "brightness(0.55)",
+              }}
+              style={{ zIndex: 50 - abs, pointerEvents: abs > 2 ? "none" : "auto" }}
+              transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <img src={s.image} alt={s.caption} draggable={false} loading="lazy" />
+              {s.kind === "video" && (
+                <span className="cf__play" aria-hidden>
+                  ▶
+                </span>
+              )}
+            </motion.button>
+          );
+        })}
+      </motion.div>
+
+      <button
+        type="button"
+        className="cf__arrow cf__arrow--next"
+        aria-label="Next"
+        onClick={() => go(index + 1)}
+        disabled={index === items.length - 1}
+      >
+        ›
+      </button>
+
+      {/* Description under the active slide */}
+      <div className="cf__caption">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={index}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.3 }}
+          >
+            <h3 className="cf__title">{items[index].caption}</h3>
+            <p className="cf__desc">{items[index].desc}</p>
+            <button
+              type="button"
+              className="btn btn--primary cf__open"
+              onClick={() => onOpen(items[index])}
+            >
+              {items[index].kind === "video" ? "Play clip ▶" : "View photo"}
+            </button>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* Thumbnail strip */}
+      <div className="cf__thumbs" role="tablist" aria-label="Choose a slide">
+        {items.map((s, i) => (
+          <button
+            type="button"
+            key={s.image}
+            className={`cf__thumb ${i === index ? "cf__thumb--on" : ""}`}
+            aria-label={s.caption}
+            aria-selected={i === index}
+            onClick={() => go(i)}
+          >
+            <img src={s.image} alt="" draggable={false} loading="lazy" />
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* Results gallery — Photos/Videos tabs, coverflow carousel, and a lightbox. */
+function Gallery() {
+  const [tab, setTab] = useState<"photos" | "videos">("videos");
+  const [active, setActive] = useState<LightboxItem | null>(null);
+
+  useEffect(() => {
+    if (!active) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setActive(null);
+    };
+    document.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [active]);
+
+  const open = (s: Slide) => setActive({ kind: s.kind, slide: s });
+
+  return (
+    <section className="section" id="gallery">
+      <Reveal className="section__head section__head--center">
+        <motion.span className="eyebrow" variants={rise}>
+          The proof
+        </motion.span>
+        <motion.h2 className="section__title" variants={rise}>
+          Real athletes. <em>Real results.</em>
+        </motion.h2>
+        <motion.p className="section__lead" variants={rise}>
+          Swipe through sessions, transformations, and breakdowns from athletes
+          running the program.
+        </motion.p>
+      </Reveal>
+
+      <div className="tabs" role="tablist" aria-label="Results gallery">
+        <button
+          role="tab"
+          aria-selected={tab === "videos"}
+          className={`tab ${tab === "videos" ? "tab--on" : ""}`}
+          onClick={() => setTab("videos")}
+        >
+          Videos
+        </button>
+        <button
+          role="tab"
+          aria-selected={tab === "photos"}
+          className={`tab ${tab === "photos" ? "tab--on" : ""}`}
+          onClick={() => setTab("photos")}
+        >
+          Photos
+        </button>
+      </div>
+
+      <Coverflow
+        key={tab}
+        items={tab === "videos" ? VIDEOS : PHOTOS}
+        onOpen={open}
+      />
+
+      <AnimatePresence>
+        {active && (
+          <motion.div
+            className="lightbox"
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setActive(null)}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+          >
+            <motion.div
+              className="lightbox__inner"
+              onClick={(e) => e.stopPropagation()}
+              initial={{ scale: 0.94, y: 16 }}
+              animate={{ scale: 1, y: 0 }}
+              exit={{ scale: 0.96, opacity: 0 }}
+              transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <button
+                type="button"
+                className="lightbox__close"
+                aria-label="Close"
+                onClick={() => setActive(null)}
+              >
+                ✕
+              </button>
+
+              {active.kind === "photo" ? (
+                <img src={active.slide.image} alt={active.slide.caption} />
+              ) : active.slide.youtubeId ? (
+                <div className="lightbox__video">
+                  <iframe
+                    src={`https://www.youtube.com/embed/${active.slide.youtubeId}?autoplay=1`}
+                    title={active.slide.caption}
+                    allow="autoplay; encrypted-media; fullscreen"
+                    allowFullScreen
+                  />
+                </div>
+              ) : active.slide.videoSrc ? (
+                <video src={active.slide.videoSrc} controls autoPlay />
+              ) : (
+                <div className="lightbox__note">
+                  <img src={active.slide.image} alt={active.slide.caption} />
+                  <p>
+                    Add a <code>youtubeId</code> or <code>videoSrc</code> for
+                    this clip in the <code>VIDEOS</code> list to play it here.
+                  </p>
+                </div>
+              )}
+
+              <p className="lightbox__cap">{active.slide.caption}</p>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </section>
   );
 }
 
@@ -793,6 +1113,9 @@ export default function App() {
             ))}
           </div>
         </section>
+
+        {/* Results gallery */}
+        <Gallery />
 
         {/* FAQ */}
         <section className="section" id="faq">

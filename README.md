@@ -79,10 +79,22 @@ npm run server     # checkout API only
 from one Node process). Set `PUBLIC_URL` so Stripe's success/cancel redirects
 point at your domain. For Netlify, see below.
 
-**Fulfillment:** add a webhook in Stripe pointing at `/api/webhook`, set
-`STRIPE_WEBHOOK_SECRET`, and fill in the `checkout.session.completed` handler
-(in `lib/checkout-core.js`'s callers: `server/index.js` for local,
-`netlify/functions/webhook.mjs` for production) to grant course access.
+**Fulfillment + welcome email:** add a webhook in Stripe pointing at
+`/api/webhook` and set `STRIPE_WEBHOOK_SECRET`. On a successful purchase,
+`lib/fulfillment.js` runs `fulfillOrder()`, which emails the buyer a welcome
+message with their access link via [Resend](https://resend.com). To enable it,
+set `RESEND_API_KEY`, `FROM_EMAIL` (a verified sender), and `COURSE_ACCESS_URL`.
+If `RESEND_API_KEY` is blank, the order is logged and email is skipped (nothing
+breaks). Add account-granting / community-invite logic in the marked `TODO`.
+
+**Results gallery:** the "Real results" section is a 3D coverflow carousel
+(swipe/drag, arrows, thumbnail strip) with Photos/Videos tabs and a lightbox.
+Replace the placeholders in `src/App.tsx`: each entry in `PHOTOS` / `VIDEOS`
+has `image` (the picture/thumbnail in `public/gallery/`), `caption`, and
+`desc`. For videos, add a `youtubeId` (e.g. `"dQw4w9WgXcQ"`) **or** a direct
+mp4 `videoSrc` so it plays in the lightbox. The hero background lives at
+`public/hero-bg.svg` — swap it for a real photo anytime (update the `url()` in
+`.hero::before` if you rename it).
 
 > The price *labels* on the cards (`$49`, `$99`, …) are display copy in
 > `src/App.tsx`. The real amount charged comes from the Stripe Price you map to

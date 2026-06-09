@@ -44,6 +44,16 @@ coaching **tier** or **buy the whole course once**. Payments run through
   quotes with role-based names** (e.g. "Division I Wide Receiver") so nothing is
   misattributed. Replace them with real, approved quotes in `src/App.tsx`
   (`TESTIMONIALS`).
+- **Results gallery** — a dynamic 3D **coverflow carousel** (swipe/drag, prev/
+  next arrows, thumbnail strip) with **Videos / Photos** tabs and a lightbox
+  player. Placeholder media lives in `public/gallery/`; replace it and edit the
+  `PHOTOS` / `VIDEOS` lists in `src/App.tsx` (`image`, `caption`, `desc`, and a
+  `youtubeId` or `videoSrc` for videos).
+- **Hero background** — an athletic motion-graphic at `public/hero-bg.svg`
+  (swap for a real photo anytime).
+- **Welcome email** — after purchase the webhook emails the buyer their access
+  link via Resend (`lib/fulfillment.js`); set `RESEND_API_KEY`, `FROM_EMAIL`,
+  `COURSE_ACCESS_URL` to enable.
 - **Footer** — brand blurb, navigation columns, contact links, and
   Privacy/Terms/Refund placeholders (the legal links currently point to `#`).
 - **Packages / pricing** — three monthly tiers + a set-apart one-time option:
