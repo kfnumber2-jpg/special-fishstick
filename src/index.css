@@ -15,10 +15,15 @@
   --ink-soft: #b6b4ad;
   --ink-faint: #6f6d67;
 
-  /* Accent — chartreuse on near-black */
+  /* Accent — electric chartreuse + cyan, used as a gradient */
   --accent: #caff4d;
+  --accent-2: #34e7ff;
+  --accent-3: #b15cff;
   --accent-ink: #0a0a0b;
   --accent-glow: rgba(202, 255, 77, 0.4);
+  --accent-2-glow: rgba(52, 231, 255, 0.4);
+  --grad: linear-gradient(105deg, var(--accent), var(--accent-2) 55%, var(--accent-3));
+  --grad-soft: linear-gradient(135deg, var(--accent), var(--accent-2));
 
   /* Type */
   --sans: "Inter", system-ui, "Segoe UI", Roboto, sans-serif;
@@ -63,14 +68,37 @@ html {
 body {
   margin: 0;
   min-height: 100svh;
-  /* Soft top glow so the hero never sits on flat black */
+  position: relative;
+  background: var(--bg);
+}
+
+/* Animated mesh-gradient field — always-on drifting color so the page
+   never feels static. Sits behind everything; non-interactive. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -1;
+  pointer-events: none;
   background:
-    radial-gradient(
-      1200px 600px at 50% -10%,
-      rgba(202, 255, 77, 0.08),
-      transparent 60%
-    ),
-    var(--bg);
+    radial-gradient(38vw 38vw at 18% 12%, rgba(202, 255, 77, 0.16), transparent 60%),
+    radial-gradient(42vw 42vw at 82% 18%, rgba(52, 231, 255, 0.14), transparent 60%),
+    radial-gradient(46vw 46vw at 65% 88%, rgba(177, 92, 255, 0.12), transparent 62%),
+    radial-gradient(40vw 40vw at 12% 82%, rgba(202, 255, 77, 0.1), transparent 60%);
+  filter: blur(20px) saturate(1.1);
+  animation: meshDrift 26s ease-in-out infinite alternate;
+}
+
+@keyframes meshDrift {
+  0% {
+    transform: translate3d(-3%, -2%, 0) scale(1.05) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(3%, 2%, 0) scale(1.12) rotate(4deg);
+  }
+  100% {
+    transform: translate3d(-2%, 3%, 0) scale(1.06) rotate(-3deg);
+  }
 }
 
 h1,

@@ -220,14 +220,23 @@
 }
 
 .btn--primary {
-  background: var(--accent);
+  position: relative;
+  background: var(--grad-soft);
+  background-size: 180% 100%;
   color: var(--accent-ink);
-  box-shadow: 0 0 0 0 var(--accent-glow);
+  box-shadow: 0 8px 26px -10px var(--accent-2-glow);
+  transition:
+    transform 0.25s var(--ease),
+    box-shadow 0.25s var(--ease),
+    background-position 0.5s var(--ease);
 }
 
 .btn--primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 12px 36px -8px var(--accent-glow);
+  transform: translateY(-3px);
+  background-position: 100% 0;
+  box-shadow:
+    0 16px 44px -10px var(--accent-glow),
+    0 8px 30px -8px var(--accent-2-glow);
 }
 
 .btn--ghost {
@@ -237,8 +246,10 @@
 }
 
 .btn--ghost:hover {
-  border-color: var(--ink-faint);
-  background: var(--bg-raised);
+  border-color: var(--accent);
+  color: var(--accent);
+  background: color-mix(in srgb, var(--bg-raised) 70%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent);
 }
 
 /* ============================================================
@@ -322,7 +333,8 @@
 
 .hero__title {
   font-size: var(--step-display);
-  letter-spacing: -0.04em;
+  letter-spacing: -0.045em;
+  font-weight: 700;
   margin: 1.4rem auto 0;
   max-width: 15ch;
 }
@@ -332,8 +344,40 @@
   font-style: italic;
   font-weight: 400;
   letter-spacing: -0.01em;
-  color: var(--accent);
-  text-shadow: 0 0 40px var(--accent-glow);
+  background: linear-gradient(
+    100deg,
+    var(--accent),
+    var(--accent-2) 45%,
+    var(--accent-3) 80%,
+    var(--accent)
+  );
+  background-size: 250% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(0 0 30px var(--accent-glow));
+  animation: shine 7s linear infinite;
+}
+
+@keyframes shine {
+  to {
+    background-position: 250% 0;
+  }
+}
+
+/* Reusable animated gradient text for section accents */
+.section__title em,
+.cta__title em,
+.onetime__title em,
+.included__title em {
+  background: linear-gradient(100deg, var(--accent), var(--accent-2) 60%, var(--accent-3));
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  animation: shine 8s linear infinite;
 }
 
 .hero__lead {
@@ -1487,4 +1531,96 @@
 }
 .footer__legal a:hover {
   color: var(--ink);
+}
+
+/* ============================================================
+   Dynamic polish — gradient accents & glow borders
+   ============================================================ */
+
+/* Gradient brand mark + eyebrow dots */
+.brand__mark {
+  background: var(--grad-soft) !important;
+}
+.eyebrow::before {
+  background: var(--grad-soft);
+}
+
+/* Animated gradient border that lights up on hover. */
+.pillar,
+.step,
+.quote,
+.athlete,
+.price {
+  position: relative;
+  isolation: isolate;
+}
+.pillar::after,
+.step::after,
+.quote::after,
+.athlete::after,
+.price::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: var(--grad);
+  background-size: 200% 100%;
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0;
+  transition: opacity 0.35s var(--ease);
+  pointer-events: none;
+  z-index: 3;
+}
+.pillar:hover::after,
+.step:hover::after,
+.quote:hover::after,
+.athlete:hover::after,
+.price:hover::after {
+  opacity: 0.85;
+  animation: shine 6s linear infinite;
+}
+
+/* The featured price card keeps a permanent gradient halo */
+.price--featured::after {
+  opacity: 0.9;
+  animation: shine 6s linear infinite;
+}
+.price--featured {
+  box-shadow: 0 30px 90px -50px var(--accent-2-glow);
+}
+
+/* Brighter, larger credibility marquee with gradient names */
+.marquee {
+  padding-block: 1.4rem;
+}
+.marquee__row {
+  font-size: clamp(2rem, 1.2rem + 2.4vw, 3.2rem);
+  color: var(--ink);
+}
+.marquee__row span::after {
+  background: var(--grad-soft);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Stat numbers get a gradient too */
+.stat__num {
+  background: var(--grad-soft);
+  background-size: 180% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+
+/* Section eyebrow underline shimmer on the centered heads */
+.section__head--center .eyebrow {
+  color: var(--ink-soft);
 }
