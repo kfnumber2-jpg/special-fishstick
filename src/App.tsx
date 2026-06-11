@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 import {
+  animate,
   AnimatePresence,
   motion,
+  useInView,
   useMotionValue,
   useReducedMotion,
   useScroll,
@@ -446,6 +448,74 @@ const VIDEOS: Slide[] = [
 type LightboxItem = { kind: "photo" | "video"; slide: Slide };
 
 /* ============================================================
+   Immersive global layers
+   ============================================================ */
+
+/** Thin accent bar at the very top that fills as you scroll the page. */
+function ScrollProgress() {
+  const { scrollYProgress } = useScroll();
+  const scaleX = useSpring(scrollYProgress, {
+    stiffness: 120,
+    damping: 30,
+    mass: 0.3,
+  });
+  return <motion.div className="scrollbar" style={{ scaleX }} aria-hidden />;
+}
+
+/** Soft accent glow that trails the pointer for a sense of depth. */
+function CursorGlow() {
+  const reduce = useReducedMotion();
+  const x = useMotionValue(-600);
+  const y = useMotionValue(-600);
+  const sx = useSpring(x, { stiffness: 280, damping: 32, mass: 0.5 });
+  const sy = useSpring(y, { stiffness: 280, damping: 32, mass: 0.5 });
+
+  useEffect(() => {
+    if (reduce) return;
+    if (window.matchMedia("(pointer: coarse)").matches) return;
+    const move = (e: PointerEvent) => {
+      x.set(e.clientX);
+      y.set(e.clientY);
+    };
+    window.addEventListener("pointermove", move, { passive: true });
+    return () => window.removeEventListener("pointermove", move);
+  }, [reduce, x, y]);
+
+  if (reduce) return null;
+  return (
+    <motion.div className="cursorglow" style={{ x: sx, y: sy }} aria-hidden>
+      <span className="cursorglow__dot" />
+    </motion.div>
+  );
+}
+
+/** Animated count-up for a stat string like "12+", "4.9★", or "NFL". */
+function StatNum({ value }: { value: string }) {
+  const reduce = useReducedMotion();
+  const ref = useRef<HTMLSpanElement>(null);
+  const inView = useInView(ref, { once: true, amount: 0.6 });
+  const [text, setText] = useState(() => {
+    const m = value.match(/^(\d+(?:\.\d+)?)(.*)$/s);
+    return m && !reduce ? `0${m[2]}` : value;
+  });
+
+  useEffect(() => {
+    const m = value.match(/^(\d+(?:\.\d+)?)(.*)$/s);
+    if (!m || reduce || !inView) return;
+    const target = parseFloat(m[1]);
+    const decimals = m[1].includes(".") ? 1 : 0;
+    const controls = animate(0, target, {
+      duration: 1.1,
+      ease: [0.22, 1, 0.36, 1],
+      onUpdate: (v) => setText(`${v.toFixed(decimals)}${m[2]}`),
+    });
+    return () => controls.stop();
+  }, [inView, reduce, value]);
+
+  return <span ref={ref}>{text}</span>;
+}
+
+/* ============================================================
    Hero with parallax 3D layers
    ============================================================ */
 function Hero() {
@@ -461,13 +531,56 @@ function Hero() {
   const rotateGrid = useTransform(scrollYProgress, [0, 1], [0, reduce ? 0 : 18]);
   const fade = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
-  return (
-    <header className="hero" id="top" ref={ref}>
-      <motion.div className="hero__grid" style={{ rotateX: rotateGrid }} aria-hidden />
-      <motion.div className="hero__orb hero__orb--a" style={{ y: yOrb }} aria-hidden />
-      <motion.div className="hero__orb hero__orb--b" style={{ y: yOrb }} aria-hidden />
+  // Pointer-reactive parallax — the hero tilts and shifts toward the cursor.
+  const pxRaw = useMotionValue(0);
+  const pyRaw = useMotionValue(0);
+  const px = useSpring(pxRaw, { stiffness: 60, damping: 18, mass: 0.6 });
+  const py = useSpring(pyRaw, { stiffness: 60, damping: 18, mass: 0.6 });
+  const orbAX = useTransform(px, [-0.5, 0.5], [reduce ? 0 : -55, reduce ? 0 : 55]);
+  const orbBX = useTransform(px, [-0.5, 0.5], [reduce ? 0 : 45, reduce ? 0 : -45]);
+  const contentX = useTransform(px, [-0.5, 0.5], [reduce ? 0 : 18, reduce ? 0 : -18]);
+  const contentTilt = useTransform(py, [-0.5, 0.5], [reduce ? 0 : 4, reduce ? 0 : -4]);
+  const gridRotateY = useTransform(px, [-0.5, 0.5], [reduce ? 0 : -8, reduce ? 0 : 8]);
 
-      <motion.div className="shell" style={{ y: yTitle, opacity: fade }}>
+  function onPointerMove(e: React.PointerEvent<HTMLElement>) {
+    if (reduce) return;
+    const r = e.currentTarget.getBoundingClientRect();
+    pxRaw.set((e.clientX - r.left) / r.width - 0.5);
+    pyRaw.set((e.clientY - r.top) / r.height - 0.5);
+  }
+  function onPointerLeave() {
+    pxRaw.set(0);
+    pyRaw.set(0);
+  }
+
+  return (
+    <header
+      className="hero"
+      id="top"
+      ref={ref}
+      onPointerMove={onPointerMove}
+      onPointerLeave={onPointerLeave}
+    >
+      <motion.div
+        className="hero__grid"
+        style={{ rotateX: rotateGrid, rotateY: gridRotateY }}
+        aria-hidden
+      />
+      <motion.div
+        className="hero__orb hero__orb--a"
+        style={{ y: yOrb, x: orbAX }}
+        aria-hidden
+      />
+      <motion.div
+        className="hero__orb hero__orb--b"
+        style={{ y: yOrb, x: orbBX }}
+        aria-hidden
+      />
+
+      <motion.div
+        className="shell"
+        style={{ y: yTitle, x: contentX, rotateX: contentTilt, opacity: fade }}
+      >
         <motion.div variants={stagger} initial="hidden" animate="show">
           <motion.span className="eyebrow" variants={rise}>
             Trusted by pro &amp; collegiate athletes
@@ -524,7 +637,9 @@ function Hero() {
 function StatCard({ s }: { s: { num: string; label: string } }) {
   return (
     <motion.div className="stat" variants={rise}>
-      <div className="stat__num">{s.num}</div>
+      <div className="stat__num">
+        <StatNum value={s.num} />
+      </div>
       <div className="stat__label">{s.label}</div>
     </motion.div>
   );
@@ -925,6 +1040,9 @@ export default function App() {
 
   return (
     <div className="site">
+      <ScrollProgress />
+      <CursorGlow />
+      <div className="grain" aria-hidden />
       <CheckoutNotice />
       <nav className="nav">
         <div className="shell nav__inner">
