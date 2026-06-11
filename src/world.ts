@@ -1,0 +1,131 @@
+// Streams the infinite maze around the player: builds a 3x3 ring of chunk
+// meshes (instanced wall boxes + floor + ceiling + light panels) and drops
+// chunks that fall out of range. Geometry comes from shared/mapgen.js, the
+// same generator the server uses for creature AI.
+import * as THREE from 'three'
+import { CELL, CHUNK, WALL_H, getChunk, hash } from '../shared/mapgen.js'
+import { carpetTexture, ceilingTexture, wallpaperTexture } from './textures'
+
+const VIEW_CHUNKS = 1 // ring radius in chunks (3x3 active)
+
+export class World {
+  private scene: THREE.Scene
+  private seed: number
+  private chunks = new Map<string, THREE.Group>()
+  private wallMat: THREE.MeshLambertMaterial
+  private floorMat: THREE.MeshLambertMaterial
+  private ceilMat: THREE.MeshLambertMaterial
+  panelMat: THREE.MeshBasicMaterial
+  private wallGeo: THREE.BoxGeometry
+  private panelGeo: THREE.PlaneGeometry
+
+  constructor(scene: THREE.Scene, seed: number) {
+    this.scene = scene
+    this.seed = seed
+    const wallTex = wallpaperTexture()
+    const carpet = carpetTexture()
+    carpet.repeat.set(CHUNK, CHUNK)
+    const ceil = ceilingTexture()
+    ceil.repeat.set(CHUNK / 2, CHUNK / 2)
+    this.wallMat = new THREE.MeshLambertMaterial({ map: wallTex })
+    this.floorMat = new THREE.MeshLambertMaterial({ map: carpet })
+    this.ceilMat = new THREE.MeshLambertMaterial({ map: ceil })
+    this.panelMat = new THREE.MeshBasicMaterial({ color: 0xfff9d6 })
+    this.wallGeo = new THREE.BoxGeometry(CELL, WALL_H, CELL)
+    this.panelGeo = new THREE.PlaneGeometry(2.3, 2.3)
+  }
+
+  update(px: number, pz: number) {
+    const ccx = Math.floor(px / (CHUNK * CELL))
+    const ccy = Math.floor(pz / (CHUNK * CELL))
+    const wanted = new Set<string>()
+    for (let dx = -VIEW_CHUNKS; dx <= VIEW_CHUNKS; dx++) {
+      for (let dy = -VIEW_CHUNKS; dy <= VIEW_CHUNKS; dy++) {
+        const key = ccx + dx + ',' + (ccy + dy)
+        wanted.add(key)
+        if (!this.chunks.has(key)) {
+          const g = this.buildChunk(ccx + dx, ccy + dy)
+          this.chunks.set(key, g)
+          this.scene.add(g)
+        }
+      }
+    }
+    for (const [key, g] of this.chunks) {
+      if (!wanted.has(key)) {
+        this.scene.remove(g)
+        g.traverse((o) => {
+          if (o instanceof THREE.InstancedMesh) o.dispose()
+        })
+        this.chunks.delete(key)
+      }
+    }
+  }
+
+  // Blackout: kill most of the ceiling glow.
+  setBlackout(on: boolean) {
+    this.panelMat.color.set(on ? 0x4a4430 : 0xfff9d6)
+  }
+
+  private buildChunk(cx: number, cy: number): THREE.Group {
+    const group = new THREE.Group()
+    const cells = getChunk(this.seed, cx, cy)
+    const originX = cx * CHUNK * CELL
+    const originZ = cy * CHUNK * CELL
+    const sizeW = CHUNK * CELL
+
+    // walls
+    let wallCount = 0
+    for (let i = 0; i < cells.length; i++) if (cells[i] === 1) wallCount++
+    const walls = new THREE.InstancedMesh(this.wallGeo, this.wallMat, Math.max(wallCount, 1))
+    const m = new THREE.Matrix4()
+    let idx = 0
+    for (let y = 0; y < CHUNK; y++) {
+      for (let x = 0; x < CHUNK; x++) {
+        if (cells[y * CHUNK + x] !== 1) continue
+        m.setPosition(originX + x * CELL + CELL / 2, WALL_H / 2, originZ + y * CELL + CELL / 2)
+        walls.setMatrixAt(idx++, m)
+      }
+    }
+    walls.count = idx
+    walls.instanceMatrix.needsUpdate = true
+    group.add(walls)
+
+    // floor + ceiling
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(sizeW, sizeW), this.floorMat)
+    floor.rotation.x = -Math.PI / 2
+    floor.position.set(originX + sizeW / 2, 0, originZ + sizeW / 2)
+    group.add(floor)
+    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(sizeW, sizeW), this.ceilMat)
+    ceil.rotation.x = Math.PI / 2
+    ceil.position.set(originX + sizeW / 2, WALL_H, originZ + sizeW / 2)
+    group.add(ceil)
+
+    // light panels on a continuous world-aligned grid over open cells,
+    // with the occasional dead panel so dark pockets exist for the smilers
+    const panelCells: [number, number][] = []
+    for (let y = 0; y < CHUNK; y++) {
+      for (let x = 0; x < CHUNK; x++) {
+        if (cells[y * CHUNK + x] === 1) continue
+        const gx = cx * CHUNK + x
+        const gy = cy * CHUNK + y
+        const mod = (n: number, d: number) => ((n % d) + d) % d
+        if (mod(gx, 3) !== 1 || mod(gy, 3) !== 1) continue
+        if (hash(this.seed, gx, gy, 0xdead) % 5 === 0) continue // dead panel
+        panelCells.push([gx, gy])
+      }
+    }
+    if (panelCells.length) {
+      const panels = new THREE.InstancedMesh(this.panelGeo, this.panelMat, panelCells.length)
+      const rot = new THREE.Matrix4().makeRotationX(Math.PI / 2)
+      panelCells.forEach(([gx, gy], i) => {
+        const pm = rot.clone()
+        pm.setPosition(gx * CELL + CELL / 2, WALL_H - 0.03, gy * CELL + CELL / 2)
+        panels.setMatrixAt(i, pm)
+      })
+      panels.instanceMatrix.needsUpdate = true
+      group.add(panels)
+    }
+
+    return group
+  }
+}

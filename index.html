@@ -3,22 +3,82 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta
-      name="description"
-      content="APEX Performance — the complete training course used with professional, collegiate, and top U.S. athletes. Choose a coaching tier or buy the full course once."
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#0a0a0b" />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap"
-      rel="stylesheet"
-    />
-    <title>APEX Performance — Train like the best in the country</title>
+    <meta name="description" content="THE BACKROOMS — a 4-player co-op horror crawl. Find the lost tapes. Get out. If you can." />
+    <meta name="theme-color" content="#0c0a02" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>THE BACKROOMS — Lost Tapes</title>
   </head>
   <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
+    <canvas id="game"></canvas>
+
+    <!-- Apple-exclusive gate -->
+    <div id="gate" class="screen hidden">
+      <h1>&#63743;</h1>
+      <h2>APPLE EXCLUSIVE</h2>
+      <p>THE BACKROOMS: LOST TAPES is an Apple special.</p>
+      <p>Play it on iPhone, iPad, or Mac.</p>
+    </div>
+
+    <!-- Lobby -->
+    <div id="lobby" class="screen">
+      <div class="vhs-label">PLAY &#9654;</div>
+      <h1 class="title glitch">THE BACKROOMS</h1>
+      <h3 class="subtitle">LOST TAPES</h3>
+      <p class="brief">
+        You noclipped out of reality. Somewhere in these endless yellow halls are
+        <b>8 lost video tapes</b>. Find them all, then find the exit door before the
+        things in the dark find you. 1&ndash;4 players.
+      </p>
+      <input id="name" maxlength="12" placeholder="YOUR NAME" autocomplete="off" />
+      <input id="room" maxlength="4" placeholder="ROOM CODE (BLANK = NEW)" autocomplete="off" />
+      <button id="join">&#9654; ENTER THE BACKROOMS</button>
+      <p class="hint" id="lobby-hint">
+        WASD move &middot; mouse look &middot; SHIFT sprint &middot; E interact &middot; F flashlight
+      </p>
+      <p class="hint warn">&#9888; keep your flashlight on some of them. off for others. learn fast.</p>
+    </div>
+
+    <!-- HUD -->
+    <div id="hud" class="hidden">
+      <div id="crosshair">+</div>
+      <div id="tapes">&#128252; 0 / 8</div>
+      <div id="roomcode"></div>
+      <div id="roster"></div>
+      <div id="bars">
+        <div class="bar"><div id="hp" class="fill hpf"></div></div>
+        <div class="bar"><div id="stamina" class="fill stf"></div></div>
+        <div class="bar"><div id="battery" class="fill baf"></div></div>
+      </div>
+      <div id="compass" class="hidden">&#11014;</div>
+      <div id="prompt" class="hidden"></div>
+      <div id="banner" class="hidden"></div>
+      <div id="vignette"></div>
+      <div id="redflash"></div>
+      <div id="scanlines"></div>
+    </div>
+
+    <!-- Touch controls -->
+    <div id="touch" class="hidden">
+      <div id="stick"><div id="knob"></div></div>
+      <div id="btns">
+        <button id="b-act">&#9995;</button>
+        <button id="b-light">&#128294;</button>
+        <button id="b-run">&#127939;</button>
+      </div>
+    </div>
+
+    <!-- End screens -->
+    <div id="endscreen" class="screen hidden">
+      <h1 id="end-title"></h1>
+      <p id="end-text"></p>
+      <p class="hint">resetting&hellip;</p>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

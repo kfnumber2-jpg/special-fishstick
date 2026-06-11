@@ -1,94 +1,81 @@
-# APEX Performance — training-package sales site
+# THE BACKROOMS — Lost Tapes
 
-A dynamic, 3D, scroll-driven landing page for selling an athletic training
-course. Built with **Vite + React + TypeScript + [Motion](https://motion.dev)**
-on a design-token system. Every sign-up unlocks the full training course; the
-page offers three monthly coaching **tiers** plus a **one-time buy** option.
-# Apex Performance — athletic training sales site
+A first-person, 4-player co-op horror game set in an **infinite, procedurally
+generated Backrooms**. You noclipped out of reality. Somewhere in the endless
+yellow halls are **8 lost video tapes**. Find them all, then find the exit door
+— while the things that live in the dark hunt you.
 
-A dynamic, 3D, scroll-driven one-page site for selling a complete athletic
-training course. Built with **Vite + React + TypeScript + [Motion](https://motion.dev)**.
+Built with **Three.js + TypeScript + Vite** on the client and a **Node.js
+WebSocket server** for multiplayer. The entire world (textures, models,
+sounds) is generated procedurally at runtime — zero asset downloads.
 
-## What it does
+##  Apple exclusive
 
-- **Sells the full course to everyone** — every plan includes the entire
-  training program, no locked modules.
-- **Three subscription tiers** (Foundation / Performance / Elite) **plus a
-  one-time purchase** for lifetime access.
-- **Credibility built in** — calls out training professional, collegiate, and
-  top U.S. athletes throughout.
-- **Motion on every scroll**: a sticky pinned 3D "system" scene where panels
-  rotate in and out, parallax hero, pop-in cards, pointer-tilt 3D cards, an
-  infinite credibility marquee, and a scroll-progress bar — all driving toward
-  the pricing CTA.
-- **Accessible**: honors `prefers-reduced-motion` (tilt, parallax, and looping
-  marquees switch off).
+The game is an **Apple special**: it only opens on iPhone, iPad, and Mac.
 
-## Quick start
+- **iPhone / iPad** — touch controls: virtual joystick (push to the rim to
+  sprint), drag the right side of the screen to look, buttons for interact /
+  flashlight / sprint.
+- **Mac** — `WASD` move · mouse look · `SHIFT` sprint · `E` interact ·
+  `F` flashlight.
+
+Non-Apple devices hit an "APPLE EXCLUSIVE" gate. For development/testing on
+anything else, append `?anydevice=1` to the URL.
+
+## How to play
+
+1. Enter a name and tap **ENTER THE BACKROOMS** (leave the room code blank to
+   open a new room).
+2. Share the 4-letter room code (top-right of the HUD) with up to 3 friends —
+   they enter it on the lobby screen and drop into the same maze.
+3. Find all **8 lost tapes**. Each one is deeper in than the last, and every
+   tape you take makes the Backrooms more awake.
+4. When the last tape is taken, the lights die and an **exit door**
+   materialises far away. Follow the green compass arrow. Get out.
+5. If you go down, a teammate can revive you (hold interact next to you). If
+   the whole crew goes down… the hum continues forever.
+
+## The things in the dark
+
+| Entity | Behaviour |
+| --- | --- |
+| **Hound** | Fast pack predator. Patrols until it has line of sight, then runs you down. Sprint, break line of sight, juke corners. |
+| **Smiler** | A grin floating in dark pockets. **Freezes while your flashlight beam pins it** — and closes terrifyingly fast the moment the light slips. |
+| **Skin-Stealer** | Looks exactly like a fourth teammate wandering the halls. The name tag reads `????`. Do not walk up to it. |
+| **Watcher** | A motionless silhouette at the edge of the light. Stare too long and it is suddenly *right behind you*. |
+| **Crawler** | Nests on every tape, waiting. Grabbing the tape wakes it. |
+
+Flashlight battery drains; manage it. Stamina limits sprinting. Some ceiling
+panels are dead — those dark pockets are where smilers live.
+
+## Running it
 
 ```bash
 npm install
-npm run dev      # local dev server with HMR
-npm run build    # typecheck (tsc) + production build to dist/
-npm run preview  # serve the production build
+npm run build     # build the client into dist/
+npm start         # serves the game + websocket on http://localhost:8787
 ```
 
-## What's on the page
+Open `http://<host>:8787` on every device (same Wi-Fi works great for couch
+co-op). For internet play, deploy to any Node host — the single server process
+serves both the client and the `/ws` websocket.
 
-- **Hero** — parallax 3D grid floor, drifting glow orbs, and a headline that
-  lifts away as you scroll.
-- **Credibility** — a marquee and stat block highlighting work with
-  professional, collegiate, and top U.S. athletes.
-- **The course** — four performance pillars and a "what's included" strip.
-- **Packages** — three tiers (Rookie / Varsity / Elite) plus a set-apart
-  one-time "Full Course" purchase. Each card has pointer-driven 3D tilt.
-- **FAQ** and a **final sign-up CTA** with an email capture form.
+### Development
 
-## How it's organized
+```bash
+npm run server    # game server on :8787
+npm run dev       # vite dev server (proxies /ws to :8787)
+```
 
-| File | What lives there |
-| --- | --- |
-| `src/index.css` | **Design tokens** — color, fluid type scale, spacing, easing. Edit these first; the whole site moves with them. |
-| `src/App.css` | Component styles (nav, hero, pricing, FAQ, CTA, footer) and the 3D/perspective rules. |
-| `src/App.tsx` | The page + Motion animations: `Reveal`, `ScrollPop` (scroll-driven 3D entrance), `Tilt` (pointer-driven 3D), parallax `Hero`, pricing data, and FAQ. |
+## How it works
 
-## Motion / 3D notes
-
-- `ScrollPop` maps scroll progress to `rotateX` + `translateZ` + `scale` so
-  each block rotates up and pops toward the camera as it enters view.
-- `Tilt` reads pointer position and springs the card's `rotateX`/`rotateY`.
-- The `.site` element sets a shared `perspective` so all 3D shares one camera.
-- `prefers-reduced-motion` is honored everywhere: `ScrollPop` falls back to a
-  plain fade/rise, tilt and parallax switch off via `useReducedMotion()`, and
-  CSS transitions are neutralized globally.
-
-## Wiring up checkout
-
-The pricing CTAs link to the `#signup` section, and the form currently shows a
-placeholder `alert`. Point the buttons and the form submit at your payment
-provider (Stripe Checkout, etc.) to take real orders.
-
-## Design direction
-
-One restrained palette, one bold accent (chartreuse on near-black), a serif
-display face (Instrument Serif) against a grotesk body (Inter). Swap the accent
-and fonts in `src/index.css` to rebrand.
-## Where to edit
-
-| File | What lives there |
-| --- | --- |
-| `src/index.css` | Design tokens — colors, the two accents, fluid type, spacing. |
-| `src/App.css` | All component styles (hero, pinned scene, pricing, etc.). |
-| `src/App.tsx` | Page + content arrays (`PLANS`, `ONE_TIME`, `DELIVERABLES`, `STATS`, `QUOTES`, `PHASES`) and all Motion logic. |
-
-### Make it yours
-
-- **Pricing**: edit the `PLANS` array and `ONE_TIME` object in `src/App.tsx`.
-- **Brand name**: search/replace `Apex Performance`.
-- **Testimonials**: the `QUOTES` are clearly-labeled samples — swap in real,
-  permissioned athlete quotes before going live.
-- **Checkout**: the CTA buttons are placeholders (`#start`). Wire them to your
-  payment provider (Stripe Checkout / Payment Links work well per plan).
-
-> Note: stats and testimonials are placeholders. Use real numbers and only
-> athlete endorsements you have permission to publish.
+- `shared/mapgen.js` — deterministic infinite maze generator (seeded, chunked,
+  guaranteed-connected, three room styles for twists and turns). Imported by
+  **both** the browser and the server, so a 4-byte seed is the whole map.
+- `server/server.js` — authoritative for creatures (AI ticks at 10 Hz with
+  real wall collision and line-of-sight), tape pickups, damage, revives, the
+  blackout and the exit. Rooms of up to 4 players.
+- `src/` — Three.js client: chunk streaming, canvas-painted textures (the
+  chevron wallpaper, carpet and ceiling from the reference shots), primitive-
+  built creatures, WebAudio-synthesised hum/heartbeat/stingers, HUD, touch +
+  pointer-lock controls.
