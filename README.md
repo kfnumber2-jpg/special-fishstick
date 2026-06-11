@@ -45,11 +45,19 @@ anything else, append `?anydevice=1` to the URL.
 | **Watcher** | A motionless silhouette at the edge of the light. Stare too long and it is suddenly *right behind you*. |
 | **Crawler** | Nests on every tape, waiting. Grabbing the tape wakes it. |
 | **Stilter** | Tall as the ceiling, all stilt legs. Walking pace, never faster — but once it has seen you it does not lose the trail, walls or no walls. Outrun it. |
+| **Howler** | Lord of the red rooms. While you stand in red halls it hears you through every wall and runs you down. Leave the red and it loses interest. |
+| **Mimic** | Some tapes were never tapes. Reach for the wrong one and it splits into teeth. Doesn't count toward your 8. |
 
 Flashlight battery drains; manage it. Stamina limits sprinting. Some ceiling
 panels are dead — those dark pockets are where smilers live. Some chunks are
 **sunken dark halls**: black ceilings, almost no working lights, and
-chest-high ledges that everything can see over.
+chest-high ledges that everything can see over. Others are **red rooms** —
+hot red parallel hallways where every creature moves 20% faster and the
+Howler hunts by sound. Don't linger.
+
+**🥤 Almond water** bottles are scattered through the maze (12 per game,
+glowing pale blue). Drinking one restores 40 hp. Deeper bottles are the
+ones you'll need.
 
 ## 👁 The legendary
 

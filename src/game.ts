@@ -13,6 +13,7 @@ import {
   buildPlayerAvatar,
   buildRelic,
   buildTape,
+  buildWater,
   revealSkinstealer,
   type CreatureKind,
 } from './entities'
@@ -192,6 +193,16 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
     tapes.set(t.id, g)
   }
   if (init.relic) placeRelicMesh(init.relic as { x: number; z: number })
+  const waters = new Map<number, THREE.Group>()
+  const addWaters = (list: { id: number; x: number; z: number }[]) => {
+    for (const w of list) {
+      const g = buildWater()
+      g.position.set(w.x, 0, w.z)
+      scene.add(g)
+      waters.set(w.id, g)
+    }
+  }
+  addWaters(init.waters as { id: number; x: number; z: number }[])
   updateTapeCounter()
   updateRoster()
   if (blackout) setBlackout()
@@ -308,6 +319,33 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
     updateTapeCounter()
     if (tapesLeft > 0) banner(`TAPE RECOVERED — ${tapesLeft} LEFT`, 2500)
   })
+  net.on('waterTaken', (m) => {
+    const g = waters.get(m.id as number)
+    if (g) {
+      scene.remove(g)
+      waters.delete(m.id as number)
+    }
+    if (m.by === me.id) {
+      me.hp = m.hp as number
+      banner('🥤 ALMOND WATER — +40 HP', 2000)
+      sfx.tapeChime()
+    }
+  })
+  net.on('mimicReveal', (m) => {
+    const g = tapes.get(m.id as number)
+    if (g) {
+      scene.remove(g)
+      tapes.delete(m.id as number)
+    }
+    banner("THAT WASN'T A TAPE", 2500)
+    sfx.staticBurst(0.8, 0.15)
+    shake = 0.7
+  })
+  net.on('howl', () => {
+    banner('THE RED ROOMS HAVE A VOICE — RUN', 2500)
+    sfx.stinger()
+    sfx.staticBurst(0.7, 0.12)
+  })
   net.on('blackout', (m) => {
     exitPos = m.exit as { x: number; z: number }
     setBlackout()
@@ -380,8 +418,11 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
       scene.add(g)
       tapes.set(t.id, g)
     }
-    tapesLeft = (m.tapes as unknown[]).length
+    tapesLeft = (m.left as number) ?? 8
     placeRelicMesh(m.relic as { x: number; z: number })
+    for (const g of waters.values()) scene.remove(g)
+    waters.clear()
+    addWaters(m.waters as { id: number; x: number; z: number }[])
     hasRelic = false
     invisUntil = 0
     const spawn = m.spawn as { x: number; z: number }
@@ -422,6 +463,12 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
 
   // --- interaction ------------------------------------------------------------------
   let reviveHold = 0
+  function nearestWater(): number | null {
+    for (const [id, g] of waters) {
+      if (Math.hypot(g.position.x - me.x, g.position.z - me.z) < 2.2) return id
+    }
+    return null
+  }
   function handleInteraction(dt: number) {
     const prompt = el('prompt')
     let text: string | null = null
@@ -449,6 +496,9 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
         ) {
           text = keyHint('👁 TAKE THE EYE')
           if (controls.consumeInteract()) net.send({ t: 'relicGrab' })
+        } else if (me.hp < 100 && nearestWater() !== null) {
+          text = keyHint('🥤 DRINK ALMOND WATER')
+          if (controls.consumeInteract()) net.send({ t: 'water', id: nearestWater() })
         } else {
           // downed teammate
           let target: number | null = null
@@ -595,6 +645,11 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
       sfx.staticBurst(0.4, 0.08)
     }
 
+    // almond water shimmer
+    for (const g of waters.values()) {
+      g.rotation.y = now * 0.001
+    }
+
     // tapes bob + spin
     for (const g of tapes.values()) {
       const tape = g.getObjectByName('tape')!
@@ -674,6 +729,26 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
           }
         })
         rc.group.rotation.z = Math.sin(now * 0.0021) * 0.04
+        break
+      }
+      case 'howler': {
+        // frantic gallop, jaw working
+        let i = 0
+        rc.group.traverse((o) => {
+          if (o.name === 'limb') {
+            o.rotation.x = moving ? Math.sin(now * 0.016 + i * Math.PI) * 0.7 : 0
+            i++
+          }
+        })
+        const jaw = rc.group.getObjectByName('jaw')
+        if (jaw) jaw.position.y = 1.42 + Math.abs(Math.sin(now * 0.01)) * 0.12
+        break
+      }
+      case 'mimic': {
+        // skittering, top shell snapping
+        rc.group.position.y = moving ? Math.abs(Math.sin(now * 0.02)) * 0.08 : 0
+        const jaw = rc.group.getObjectByName('jaw')
+        if (jaw) jaw.rotation.x = -0.35 - Math.abs(Math.sin(now * 0.012)) * 0.5
         break
       }
       case 'watcher': {

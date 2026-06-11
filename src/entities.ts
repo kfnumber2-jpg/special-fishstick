@@ -3,7 +3,15 @@
 import * as THREE from 'three'
 import { nameSprite, smileTexture, tapeLabelTexture, exitDoorTexture } from './textures'
 
-export type CreatureKind = 'hound' | 'smiler' | 'skinstealer' | 'watcher' | 'crawler' | 'stilter'
+export type CreatureKind =
+  | 'hound'
+  | 'smiler'
+  | 'skinstealer'
+  | 'watcher'
+  | 'crawler'
+  | 'stilter'
+  | 'howler'
+  | 'mimic'
 
 const PLAYER_COLORS = [0xd9c75a, 0x7ab0d9, 0xd97a7a, 0x8ad97a]
 
@@ -58,6 +66,10 @@ export function buildCreature(kind: CreatureKind): THREE.Group {
       return buildCrawler()
     case 'stilter':
       return buildStilter()
+    case 'howler':
+      return buildHowler()
+    case 'mimic':
+      return buildMimic()
   }
 }
 
@@ -208,6 +220,75 @@ function buildStilter(): THREE.Group {
   return g
 }
 
+// Lord of the red rooms: a gaunt hunched runner, all ribs and jaw, lit from
+// inside by the same red as the halls it owns.
+function buildHowler(): THREE.Group {
+  const g = new THREE.Group()
+  const mat = darkMat(0x1a0806)
+  const body = new THREE.Mesh(new THREE.SphereGeometry(0.42, 10, 8), mat)
+  body.scale.set(0.8, 1.25, 1.1)
+  body.position.set(0, 1.15, 0)
+  body.rotation.x = 0.5
+  g.add(body)
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.26, 10, 8), mat)
+  head.scale.set(0.8, 0.9, 1.3)
+  head.position.set(0, 1.55, 0.45)
+  g.add(head)
+  // wide red jaw
+  const jaw = new THREE.Mesh(
+    new THREE.BoxGeometry(0.34, 0.1, 0.4),
+    new THREE.MeshBasicMaterial({ color: 0xff2418 })
+  )
+  jaw.position.set(0, 1.42, 0.58)
+  jaw.name = 'jaw'
+  g.add(jaw)
+  eyes(g, 1.65, 0.22, 0.62, 0xff2418, 0.05)
+  for (const side of [-1, 1]) {
+    for (const fz of [0.35, -0.3]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.04, 1.1, 5), mat)
+      leg.position.set(side * 0.3, 0.55, fz)
+      leg.name = 'limb'
+      g.add(leg)
+    }
+  }
+  return g
+}
+
+// What a fake tape really is: the cassette split open into a mouth on legs.
+function buildMimic(): THREE.Group {
+  const g = new THREE.Group()
+  const dark = darkMat(0x14110d)
+  const shell = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.18, 0.45), dark)
+  shell.position.set(0, 0.55, 0)
+  shell.rotation.x = -0.35
+  shell.name = 'jaw'
+  g.add(shell)
+  const shellBottom = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.18, 0.45), dark)
+  shellBottom.position.set(0, 0.35, 0)
+  g.add(shellBottom)
+  // teeth between the shells
+  for (let i = 0; i < 5; i++) {
+    const tooth = new THREE.Mesh(
+      new THREE.ConeGeometry(0.04, 0.14, 4),
+      new THREE.MeshBasicMaterial({ color: 0xe8e2d0 })
+    )
+    tooth.position.set(-0.26 + i * 0.13, 0.42, 0.2)
+    tooth.rotation.x = Math.PI
+    g.add(tooth)
+  }
+  eyes(g, 0.62, 0.3, 0.18, 0xff4030, 0.04)
+  for (const side of [-1, 1]) {
+    for (const fz of [0.15, -0.15]) {
+      const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.02, 0.45, 4), dark)
+      leg.position.set(side * 0.32, 0.2, fz)
+      leg.rotation.z = side * 0.5
+      leg.name = 'limb'
+      g.add(leg)
+    }
+  }
+  return g
+}
+
 // --- props ---------------------------------------------------------------------
 
 export function buildTape(): THREE.Group {
@@ -259,6 +340,33 @@ export function buildRelic(): THREE.Group {
   g.add(pedestal)
   const glow = new THREE.PointLight(0xffd84a, 2.5, 9)
   glow.position.y = 1.3
+  g.add(glow)
+  return g
+}
+
+// Almond water: the Backrooms' classic restorative. +40 hp per bottle.
+export function buildWater(): THREE.Group {
+  const g = new THREE.Group()
+  const bottle = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.09, 0.11, 0.34, 8),
+    new THREE.MeshLambertMaterial({ color: 0xbfe8ee, transparent: true, opacity: 0.85 })
+  )
+  bottle.position.y = 0.17
+  g.add(bottle)
+  const cap = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.045, 0.045, 0.07, 8),
+    new THREE.MeshLambertMaterial({ color: 0x2266aa })
+  )
+  cap.position.y = 0.38
+  g.add(cap)
+  const label = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.112, 0.112, 0.14, 8),
+    new THREE.MeshBasicMaterial({ color: 0xf4ecd8 })
+  )
+  label.position.y = 0.15
+  g.add(label)
+  const glow = new THREE.PointLight(0x9fdde8, 0.9, 4)
+  glow.position.y = 0.5
   g.add(glow)
   return g
 }

@@ -137,6 +137,19 @@ export function getChunk(seed, cx, cy) {
     for (let i = 0; i < 3; i++) {
       fill(cells, 2 + Math.floor(rng() * (CHUNK - 6)), 2 + Math.floor(rng() * (CHUNK - 6)), 2, 2)
     }
+  } else if (style === 4) {
+    // Red rooms: long claustrophobic parallel hallways with rare cuts
+    // between them. Easy to sprint down, terrible to be cornered in.
+    for (let y = 2; y < CHUNK - 1; y += 3) {
+      fill(cells, 1, y, CHUNK - 2, 1)
+      const gaps = 2 + Math.floor(rng() * 3)
+      for (let g = 0; g < gaps; g++) {
+        carve(cells, 1 + Math.floor(rng() * (CHUNK - 2)), y, 2, 1)
+      }
+    }
+    for (let i = 0; i < 2; i++) {
+      carve(cells, 3 + Math.floor(rng() * (CHUNK - 6)), 1, 1, CHUNK - 2)
+    }
   } else {
     // Room blocks with gaps in their perimeters.
     for (let r = 0; r < 3; r++) {
@@ -186,7 +199,14 @@ export function getChunk(seed, cx, cy) {
 // --- queries --------------------------------------------------------------
 
 export function chunkStyle(seed, cx, cy) {
-  return hash(seed, cx, cy, 0x57e) % 4
+  return hash(seed, cx, cy, 0x57e) % 5
+}
+
+// Red rooms: style 4. Hot red light, claustrophobic parallel halls, and
+// everything that hunts in them moves faster.
+export function redZoneAt(seed, x, z) {
+  const span = CHUNK * CELL
+  return chunkStyle(seed, Math.floor(x / span), Math.floor(z / span)) === 4
 }
 
 export function cellValue(seed, gx, gy) {

@@ -16,6 +16,10 @@ export class World {
   private floorMat: THREE.MeshLambertMaterial
   private ceilMat: THREE.MeshLambertMaterial
   private darkCeilMat: THREE.MeshLambertMaterial
+  private redWallMat: THREE.MeshLambertMaterial
+  private redFloorMat: THREE.MeshLambertMaterial
+  private redCeilMat: THREE.MeshLambertMaterial
+  private redPanelMat: THREE.MeshBasicMaterial
   panelMat: THREE.MeshBasicMaterial
   private wallGeo: THREE.BoxGeometry
   private lowGeo: THREE.BoxGeometry
@@ -33,6 +37,11 @@ export class World {
     this.floorMat = new THREE.MeshLambertMaterial({ map: carpet })
     this.ceilMat = new THREE.MeshLambertMaterial({ map: ceil })
     this.darkCeilMat = new THREE.MeshLambertMaterial({ color: 0x171410 })
+    // red rooms: same textures, tinted hot — Lambert color multiplies the map
+    this.redWallMat = new THREE.MeshLambertMaterial({ map: wallTex, color: 0xd84a38 })
+    this.redFloorMat = new THREE.MeshLambertMaterial({ map: carpet, color: 0xb03326 })
+    this.redCeilMat = new THREE.MeshLambertMaterial({ color: 0x2a0c08 })
+    this.redPanelMat = new THREE.MeshBasicMaterial({ color: 0xff3b2e })
     this.panelMat = new THREE.MeshBasicMaterial({ color: 0xfff9d6 })
     this.wallGeo = new THREE.BoxGeometry(CELL, WALL_H, CELL)
     this.lowGeo = new THREE.BoxGeometry(CELL, 1.15, CELL)
@@ -77,14 +86,18 @@ export class World {
     const originZ = cy * CHUNK * CELL
     const sizeW = CHUNK * CELL
     // style 3 = sunken dark hall: black ceiling, almost every panel dead
-    const dark = chunkStyle(this.seed, cx, cy) === 3
+    // style 4 = red rooms: everything tinted hot red, red glow panels
+    const style = chunkStyle(this.seed, cx, cy)
+    const dark = style === 3
+    const red = style === 4
+    const wallMat = red ? this.redWallMat : this.wallMat
 
     // full walls + chest-high barriers
     const addInstances = (value: number, geo: THREE.BoxGeometry, height: number) => {
       let count = 0
       for (let i = 0; i < cells.length; i++) if (cells[i] === value) count++
       if (count === 0) return
-      const mesh = new THREE.InstancedMesh(geo, this.wallMat, count)
+      const mesh = new THREE.InstancedMesh(geo, wallMat, count)
       const m = new THREE.Matrix4()
       let idx = 0
       for (let y = 0; y < CHUNK; y++) {
@@ -101,11 +114,17 @@ export class World {
     addInstances(LOW, this.lowGeo, 1.15 / 2)
 
     // floor + ceiling
-    const floor = new THREE.Mesh(new THREE.PlaneGeometry(sizeW, sizeW), this.floorMat)
+    const floor = new THREE.Mesh(
+      new THREE.PlaneGeometry(sizeW, sizeW),
+      red ? this.redFloorMat : this.floorMat
+    )
     floor.rotation.x = -Math.PI / 2
     floor.position.set(originX + sizeW / 2, 0, originZ + sizeW / 2)
     group.add(floor)
-    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(sizeW, sizeW), dark ? this.darkCeilMat : this.ceilMat)
+    const ceil = new THREE.Mesh(
+      new THREE.PlaneGeometry(sizeW, sizeW),
+      red ? this.redCeilMat : dark ? this.darkCeilMat : this.ceilMat
+    )
     ceil.rotation.x = Math.PI / 2
     ceil.position.set(originX + sizeW / 2, WALL_H, originZ + sizeW / 2)
     group.add(ceil)
@@ -127,7 +146,11 @@ export class World {
       }
     }
     if (panelCells.length) {
-      const panels = new THREE.InstancedMesh(this.panelGeo, this.panelMat, panelCells.length)
+      const panels = new THREE.InstancedMesh(
+        this.panelGeo,
+        red ? this.redPanelMat : this.panelMat,
+        panelCells.length
+      )
       const rot = new THREE.Matrix4().makeRotationX(Math.PI / 2)
       panelCells.forEach(([gx, gy], i) => {
         const pm = rot.clone()

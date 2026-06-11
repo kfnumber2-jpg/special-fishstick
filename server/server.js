@@ -15,6 +15,7 @@ import {
   hasLineOfSight,
   isWall,
   moveWithCollision,
+  redZoneAt,
   worldToCell,
 } from '../shared/mapgen.js'
 
@@ -23,6 +24,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DIST = path.join(__dirname, '..', 'dist')
 
 const TAPE_COUNT = 8
+const MIMIC_COUNT = 3
+const WATER_COUNT = 12
 const MAX_PLAYERS = 4
 const TICK_MS = 100
 const SPAWN_POINT = { x: cellCenter(8), z: cellCenter(8) }
@@ -88,9 +91,11 @@ function createRoom(code) {
     spawnTimer: 0,
     emptySince: 0,
     relic: null,
+    waters: [],
   }
   placeTapes(room)
   placeRelic(room)
+  placeWaters(room)
   rooms.set(code, room)
   return room
 }
@@ -107,6 +112,28 @@ function placeTapes(room) {
     // Every tape has a crawler nesting on it, waiting.
     spawnCreature(room, 'crawler', tape.x, tape.z, { tape: i, state: 'hide' })
   }
+  // Mimics: fake tapes scattered among the real ones. Identical until you
+  // reach for them — then they grow teeth. They don't count toward the goal.
+  for (let i = 0; i < MIMIC_COUNT; i++) {
+    const [gx, gy] = pickReachableCell(room.reachable, 12, 44)
+    room.tapes.push({
+      id: TAPE_COUNT + i,
+      x: cellCenter(gx),
+      z: cellCenter(gy),
+      taken: false,
+      mimic: true,
+    })
+  }
+}
+
+// Almond water: the Backrooms' classic restorative. One swig = +40 hp.
+function placeWaters(room) {
+  room.waters = []
+  for (let i = 0; i < WATER_COUNT; i++) {
+    const band = 6 + i * 4
+    const [gx, gy] = pickReachableCell(room.reachable, band, band + 6)
+    room.waters.push({ id: i, x: cellCenter(gx), z: cellCenter(gy), taken: false })
+  }
 }
 
 // One legendary per game: THE WANDERER'S EYE. Whoever carries it is saved
@@ -119,7 +146,7 @@ function placeRelic(room) {
 
 // --- creatures ---------------------------------------------------------------
 
-const CREATURE_KINDS = ['hound', 'smiler', 'skinstealer', 'watcher', 'stilter']
+const CREATURE_KINDS = ['hound', 'smiler', 'skinstealer', 'watcher', 'stilter', 'howler']
 
 function spawnCreature(room, kind, x, z, extra = {}) {
   const c = {
@@ -181,6 +208,8 @@ function wander(room, c, speed, dt) {
 }
 
 function stepToward(room, c, tx, tz, speed, dt) {
+  // Everything hunts faster inside the red rooms.
+  if (redZoneAt(room.seed, c.x, c.z)) speed *= 1.2
   const dx = tx - c.x
   const dz = tz - c.z
   const d = Math.hypot(dx, dz)
@@ -214,9 +243,8 @@ function stepToward(room, c, tx, tz, speed, dt) {
   }
 }
 
-function tryAttack(room, c, target, dist, range, damage) {
-  if (dist > range || c.attackCd > 0 || target.down || isInvisible(target)) return false
-  c.attackCd = 1.2
+// Applies damage with the relic-save rule. Returns false if the relic ate it.
+function damagePlayer(room, target, damage, byKind) {
   // The Wanderer's Eye spends itself to save its carrier.
   if (target.relic) {
     target.relic = false
@@ -225,12 +253,19 @@ function tryAttack(room, c, target, dist, range, damage) {
     return false
   }
   target.hp = Math.max(0, target.hp - damage)
-  send(target, { t: 'hit', hp: target.hp, by: c.kind })
+  send(target, { t: 'hit', hp: target.hp, by: byKind })
   if (target.hp <= 0) {
     target.down = true
-    broadcast(room, { t: 'down', id: target.id, by: c.kind })
+    broadcast(room, { t: 'down', id: target.id, by: byKind })
     checkWipe(room)
   }
+  return true
+}
+
+function tryAttack(room, c, target, dist, range, damage) {
+  if (dist > range || c.attackCd > 0 || target.down || isInvisible(target)) return false
+  c.attackCd = 1.2
+  damagePlayer(room, target, damage, c.kind)
   return true
 }
 
@@ -382,6 +417,34 @@ function tickCreature(room, c, dt) {
       }
       break
     }
+    case 'howler': {
+      // The thing the red rooms belong to. While you're in a red zone it
+      // hears you from anywhere nearby and runs you down — walls don't help,
+      // it knows these halls. Leave the red and it loses interest.
+      if (near && near.dist < 45 && redZoneAt(room.seed, near.p.x, near.p.z)) {
+        if (c.state !== 'howl') {
+          c.state = 'howl'
+          send(near.p, { t: 'howl' })
+        }
+        stepToward(room, c, near.p.x, near.p.z, 5.8, dt)
+        tryAttack(room, c, near.p, near.dist, 1.4, 30)
+      } else {
+        c.state = 'wander'
+        wander(room, c, 2.0, dt)
+      }
+      break
+    }
+    case 'mimic': {
+      // A fake tape that just got touched: all teeth for a short while,
+      // then it scurries off into the dark.
+      if (near && c.stateT < 14) {
+        stepToward(room, c, near.p.x, near.p.z, 5.2, dt)
+        tryAttack(room, c, near.p, near.dist, 1.3, 18)
+      } else if (c.stateT >= 14) {
+        room.creatures.delete(c.id)
+      }
+      break
+    }
     case 'crawler': {
       // Nests on a tape. Grabbing the tape (or getting close) wakes it.
       if (c.state === 'hide') {
@@ -446,6 +509,7 @@ function resetRoom(room) {
   room.over = false
   placeTapes(room)
   placeRelic(room)
+  placeWaters(room)
   for (const p of room.players.values()) {
     p.hp = 100
     p.down = false
@@ -456,8 +520,10 @@ function resetRoom(room) {
   }
   broadcast(room, {
     t: 'reset',
+    left: TAPE_COUNT,
     tapes: room.tapes.map((tp) => ({ id: tp.id, x: tp.x, z: tp.z })),
     relic: { x: room.relic.x, z: room.relic.z },
+    waters: room.waters.map((w) => ({ id: w.id, x: w.x, z: w.z })),
     spawn: SPAWN_POINT,
   })
 }
@@ -516,10 +582,17 @@ function handleMessage(room, p, msg) {
       break
     }
     case 'grab': {
-      const tape = room.tapes[msg.tape]
+      const tape = room.tapes.find((tp) => tp.id === msg.tape)
       if (!tape || tape.taken || p.down) break
       if (Math.hypot(tape.x - p.x, tape.z - p.z) > 3) break
       tape.taken = true
+      if (tape.mimic) {
+        // Surprise. It was never a tape.
+        broadcast(room, { t: 'mimicReveal', id: tape.id, x: tape.x, z: tape.z })
+        spawnCreature(room, 'mimic', tape.x, tape.z, { state: 'hunt' })
+        if (!isInvisible(p)) damagePlayer(room, p, 25, 'mimic')
+        break
+      }
       room.tapesLeft--
       // Grabbing a tape wakes its crawler even if you kept your distance.
       for (const c of room.creatures.values()) {
@@ -531,6 +604,15 @@ function handleMessage(room, p, msg) {
       }
       broadcast(room, { t: 'tape', id: tape.id, by: p.id, left: room.tapesLeft })
       if (room.tapesLeft === 0) startBlackout(room)
+      break
+    }
+    case 'water': {
+      const w = room.waters.find((x) => x.id === msg.id)
+      if (!w || w.taken || p.down || p.hp >= 100) break
+      if (Math.hypot(w.x - p.x, w.z - p.z) > 3) break
+      w.taken = true
+      p.hp = Math.min(100, p.hp + 40)
+      broadcast(room, { t: 'waterTaken', id: w.id, by: p.id, hp: p.hp })
       break
     }
     case 'relicGrab': {
@@ -654,6 +736,7 @@ wss.on('connection', (ws) => {
         blackout: room.blackout,
         exit: room.exit,
         relic: room.relic.taken ? null : { x: room.relic.x, z: room.relic.z },
+        waters: room.waters.filter((w) => !w.taken).map((w) => ({ id: w.id, x: w.x, z: w.z })),
       })
       broadcast(room, { t: 'joined', id: player.id, n: player.name })
       return
