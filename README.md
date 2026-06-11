@@ -66,7 +66,26 @@ carries it (👁 in the roster) is saved exactly once: the hit that should have
 landed instead burns the relic and turns the carrier **invisible to every
 creature for 12 seconds**. Use the window to run, revive, or escape.
 
-## Running it
+## Running it — the easy way
+
+You need [Node.js](https://nodejs.org) installed (free, one-time, click the
+big green button). Then:
+
+1. On the GitHub page click the green **Code** button → **Download ZIP**, and
+   unzip it.
+2. **Mac:** double-click **`play.command`** in the unzipped folder.
+   **Windows:** double-click **`play.bat`**.
+3. That's it. The first run sets itself up (about a minute), then the game
+   opens in your browser by itself.
+
+It also prints an address like `http://192.168.x.x:8787` — type that into
+Safari on an iPhone or iPad on the same Wi-Fi to play from the couch.
+Friends join with the 4-letter room code at the top of the screen.
+
+> Mac may say the file is from an unidentified developer the first time:
+> right-click `play.command` → **Open** → **Open** once, and it remembers.
+
+### Running it by hand
 
 ```bash
 npm install
