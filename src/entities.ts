@@ -3,7 +3,7 @@
 import * as THREE from 'three'
 import { nameSprite, smileTexture, tapeLabelTexture, exitDoorTexture } from './textures'
 
-export type CreatureKind = 'hound' | 'smiler' | 'skinstealer' | 'watcher' | 'crawler'
+export type CreatureKind = 'hound' | 'smiler' | 'skinstealer' | 'watcher' | 'crawler' | 'stilter'
 
 const PLAYER_COLORS = [0xd9c75a, 0x7ab0d9, 0xd97a7a, 0x8ad97a]
 
@@ -56,6 +56,8 @@ export function buildCreature(kind: CreatureKind): THREE.Group {
       return buildWatcher()
     case 'crawler':
       return buildCrawler()
+    case 'stilter':
+      return buildStilter()
   }
 }
 
@@ -173,6 +175,39 @@ function buildCrawler(): THREE.Group {
   return g
 }
 
+// Head at the ceiling, body all spindly stilt legs — the thing from the
+// footage. Each leg is two thin segments bent at a high knee.
+function buildStilter(): THREE.Group {
+  const g = new THREE.Group()
+  const mat = darkMat(0x0c0a07)
+  const torso = new THREE.Mesh(new THREE.SphereGeometry(0.28, 10, 8), mat)
+  torso.scale.set(1, 1.5, 0.8)
+  torso.position.y = 2.55
+  g.add(torso)
+  const head = new THREE.Mesh(new THREE.SphereGeometry(0.16, 8, 8), mat)
+  head.position.set(0, 3.05, 0.08)
+  g.add(head)
+  eyes(g, 3.07, 0.2, 0.06, 0xd8d4c0, 0.035)
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + Math.PI / 4
+    const hip = new THREE.Group()
+    hip.position.set(Math.cos(a) * 0.22, 2.4, Math.sin(a) * 0.22)
+    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.03, 1.5, 5), mat)
+    upper.position.y = -0.6
+    upper.rotation.z = Math.cos(a) * 0.55
+    upper.rotation.x = -Math.sin(a) * 0.55
+    hip.add(upper)
+    const lower = new THREE.Mesh(new THREE.CylinderGeometry(0.028, 0.02, 1.6, 5), mat)
+    lower.position.set(Math.cos(a) * 0.75, -1.65, Math.sin(a) * 0.75)
+    lower.rotation.z = -Math.cos(a) * 0.28
+    lower.rotation.x = Math.sin(a) * 0.28
+    hip.add(lower)
+    hip.name = 'stiltleg'
+    g.add(hip)
+  }
+  return g
+}
+
 // --- props ---------------------------------------------------------------------
 
 export function buildTape(): THREE.Group {
@@ -194,6 +229,36 @@ export function buildTape(): THREE.Group {
   g.add(tape)
   const glow = new THREE.PointLight(0xb0c8ff, 1.4, 5)
   glow.position.y = 1.0
+  g.add(glow)
+  return g
+}
+
+// THE WANDERER'S EYE — the one legendary in each game. Carrying it saves
+// you from a single killing strike by turning you invisible.
+export function buildRelic(): THREE.Group {
+  const g = new THREE.Group()
+  const eye = new THREE.Mesh(
+    new THREE.OctahedronGeometry(0.22, 0),
+    new THREE.MeshBasicMaterial({ color: 0xffd84a })
+  )
+  eye.position.y = 1.1
+  eye.name = 'relic'
+  g.add(eye)
+  const iris = new THREE.Mesh(
+    new THREE.SphereGeometry(0.09, 8, 8),
+    new THREE.MeshBasicMaterial({ color: 0x1a1206 })
+  )
+  iris.position.y = 1.1
+  iris.name = 'iris'
+  g.add(iris)
+  const pedestal = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.16, 0.24, 0.7, 8),
+    new THREE.MeshLambertMaterial({ color: 0x2a2418 })
+  )
+  pedestal.position.y = 0.35
+  g.add(pedestal)
+  const glow = new THREE.PointLight(0xffd84a, 2.5, 9)
+  glow.position.y = 1.3
   g.add(glow)
   return g
 }

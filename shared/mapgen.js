@@ -48,18 +48,24 @@ function edgeOpenings(seed, cx, cy, vertical) {
   return out
 }
 
+// Cell values: 0 open · 1 full wall · 2 low barrier (chest-high — blocks
+// movement, but you and the creatures can see right over it).
+export const OPEN = 0
+export const WALL = 1
+export const LOW = 2
+
 function carve(cells, x, y, w, h) {
   for (let j = y; j < y + h; j++) {
     for (let i = x; i < x + w; i++) {
-      if (i >= 0 && i < CHUNK && j >= 0 && j < CHUNK) cells[j * CHUNK + i] = 0
+      if (i >= 0 && i < CHUNK && j >= 0 && j < CHUNK) cells[j * CHUNK + i] = OPEN
     }
   }
 }
 
-function fill(cells, x, y, w, h) {
+function fill(cells, x, y, w, h, v = WALL) {
   for (let j = y; j < y + h; j++) {
     for (let i = x; i < x + w; i++) {
-      if (i >= 0 && i < CHUNK && j >= 0 && j < CHUNK) cells[j * CHUNK + i] = 1
+      if (i >= 0 && i < CHUNK && j >= 0 && j < CHUNK) cells[j * CHUNK + i] = v
     }
   }
 }
@@ -92,9 +98,9 @@ export function getChunk(seed, cx, cy) {
   fill(cells, CHUNK - 1, 0, 1, CHUNK)
 
   // Interior style varies per chunk so the maze keeps surprising you:
-  // open halls with freestanding wall slabs, dense twisty mazes, or
-  // partitioned room blocks.
-  const style = hash(seed, cx, cy, 0x57e) % 3
+  // open halls with freestanding wall slabs, dense twisty mazes,
+  // partitioned room blocks, or sunken dark halls with low barriers.
+  const style = chunkStyle(seed, cx, cy)
   if (style === 0) {
     // Open hall with pillars and slabs (the classic Level 0 look).
     const slabs = 5 + Math.floor(rng() * 5)
@@ -115,6 +121,21 @@ export function getChunk(seed, cx, cy) {
       const len = 2 + Math.floor(rng() * 5)
       if (rng() < 0.5) fill(cells, x, y, len, 1)
       else fill(cells, x, y, 1, len)
+    }
+  } else if (style === 3) {
+    // Sunken dark hall: a vast open space cut by chest-high ledges you can
+    // see over, a few full pillars, and almost no working lights. Smiler
+    // country.
+    const ledges = 7 + Math.floor(rng() * 5)
+    for (let i = 0; i < ledges; i++) {
+      const x = 2 + Math.floor(rng() * (CHUNK - 8))
+      const y = 2 + Math.floor(rng() * (CHUNK - 8))
+      const len = 3 + Math.floor(rng() * 5)
+      if (rng() < 0.5) fill(cells, x, y, len, rng() < 0.3 ? 2 : 1, LOW)
+      else fill(cells, x, y, rng() < 0.3 ? 2 : 1, len, LOW)
+    }
+    for (let i = 0; i < 3; i++) {
+      fill(cells, 2 + Math.floor(rng() * (CHUNK - 6)), 2 + Math.floor(rng() * (CHUNK - 6)), 2, 2)
     }
   } else {
     // Room blocks with gaps in their perimeters.
@@ -164,11 +185,20 @@ export function getChunk(seed, cx, cy) {
 
 // --- queries --------------------------------------------------------------
 
-export function isWall(seed, gx, gy) {
+export function chunkStyle(seed, cx, cy) {
+  return hash(seed, cx, cy, 0x57e) % 4
+}
+
+export function cellValue(seed, gx, gy) {
   const cx = Math.floor(gx / CHUNK)
   const cy = Math.floor(gy / CHUNK)
   const cells = getChunk(seed, cx, cy)
-  return cells[(gy - cy * CHUNK) * CHUNK + (gx - cx * CHUNK)] === 1
+  return cells[(gy - cy * CHUNK) * CHUNK + (gx - cx * CHUNK)]
+}
+
+// Blocks movement (full walls and low barriers alike).
+export function isWall(seed, gx, gy) {
+  return cellValue(seed, gx, gy) !== OPEN
 }
 
 export function worldToCell(v) {
@@ -233,7 +263,8 @@ export function hasLineOfSight(seed, x0, z0, x1, z1) {
   const tDeltaX = dx !== 0 ? Math.abs(CELL / dx) : Infinity
   const tDeltaZ = dz !== 0 ? Math.abs(CELL / dz) : Infinity
   for (let i = 0; i < 256; i++) {
-    if (isWall(seed, gx, gz)) return false
+    // only full walls block sight — everyone sees over the low barriers
+    if (cellValue(seed, gx, gz) === WALL) return false
     if (gx === gx1 && gz === gz1) return true
     if (tMaxX < tMaxZ) {
       tMaxX += tDeltaX

@@ -44,9 +44,19 @@ anything else, append `?anydevice=1` to the URL.
 | **Skin-Stealer** | Looks exactly like a fourth teammate wandering the halls. The name tag reads `????`. Do not walk up to it. |
 | **Watcher** | A motionless silhouette at the edge of the light. Stare too long and it is suddenly *right behind you*. |
 | **Crawler** | Nests on every tape, waiting. Grabbing the tape wakes it. |
+| **Stilter** | Tall as the ceiling, all stilt legs. Walking pace, never faster — but once it has seen you it does not lose the trail, walls or no walls. Outrun it. |
 
 Flashlight battery drains; manage it. Stamina limits sprinting. Some ceiling
-panels are dead — those dark pockets are where smilers live.
+panels are dead — those dark pockets are where smilers live. Some chunks are
+**sunken dark halls**: black ceilings, almost no working lights, and
+chest-high ledges that everything can see over.
+
+## 👁 The legendary
+
+Hidden somewhere in every game is exactly one **WANDERER'S EYE**. Whoever
+carries it (👁 in the roster) is saved exactly once: the hit that should have
+landed instead burns the relic and turns the carrier **invisible to every
+creature for 12 seconds**. Use the window to run, revive, or escape.
 
 ## Running it
 

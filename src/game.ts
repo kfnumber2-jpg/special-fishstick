@@ -11,6 +11,7 @@ import {
   buildCreature,
   buildExitDoor,
   buildPlayerAvatar,
+  buildRelic,
   buildTape,
   revealSkinstealer,
   type CreatureKind,
@@ -29,6 +30,8 @@ interface RemotePlayer {
   hp: number
   down: boolean
   name: string
+  relic: boolean
+  ghost: boolean
 }
 
 interface RemoteCreature {
@@ -91,6 +94,20 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
   let exitPos = init.exit as { x: number; z: number } | null
   let exitDoor: THREE.Group | null = null
   let gameOver = false
+  let relicMesh: THREE.Group | null = null
+  let hasRelic = false
+  let invisUntil = 0
+
+  // dev helpers: ?tp=x,z teleports on spawn; __seed lets tooling find chunks
+  const tp = new URLSearchParams(location.search).get('tp')
+  if (tp) {
+    const [tx, tz] = tp.split(',').map(Number)
+    if (Number.isFinite(tx) && Number.isFinite(tz)) {
+      me.x = tx
+      me.z = tz
+    }
+  }
+  ;(window as unknown as Record<string, unknown>).__seed = seed
 
   const remotePlayers = new Map<number, RemotePlayer>()
   const creatures = new Map<number, RemoteCreature>()
@@ -117,12 +134,32 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
 
   function updateRoster() {
     const rows: string[] = [
-      `<div class="${me.down ? 'dead' : ''}">${myName} (you) ${me.down ? '☠' : me.hp}</div>`,
+      `<div class="${me.down ? 'dead' : ''}">${hasRelic ? '👁 ' : ''}${myName} (you) ${me.down ? '☠' : me.hp}</div>`,
     ]
     for (const p of remotePlayers.values()) {
-      rows.push(`<div class="${p.down ? 'dead' : ''}">${p.name} ${p.down ? '☠' : p.hp}</div>`)
+      rows.push(
+        `<div class="${p.down ? 'dead' : ''}">${p.relic ? '👁 ' : ''}${p.name} ${p.down ? '☠' : p.hp}</div>`
+      )
     }
     el('roster').innerHTML = rows.join('')
+  }
+
+  function placeRelicMesh(pos: { x: number; z: number }) {
+    if (relicMesh) scene.remove(relicMesh)
+    relicMesh = buildRelic()
+    relicMesh.position.set(pos.x, 0, pos.z)
+    scene.add(relicMesh)
+  }
+
+  // Ghosting: how teammates look while the Eye hides them.
+  function setGhost(group: THREE.Group, on: boolean) {
+    group.traverse((o) => {
+      if (o instanceof THREE.Mesh || o instanceof THREE.Sprite) {
+        const mat = o.material as THREE.Material
+        mat.transparent = true
+        mat.opacity = on ? 0.15 : 1
+      }
+    })
   }
 
   function redFlash() {
@@ -154,6 +191,7 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
     scene.add(g)
     tapes.set(t.id, g)
   }
+  if (init.relic) placeRelicMesh(init.relic as { x: number; z: number })
   updateTapeCounter()
   updateRoster()
   if (blackout) setBlackout()
@@ -168,6 +206,8 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
       yaw: number
       hp: number
       down: boolean
+      r: number
+      inv: number
     }[]
     const seen = new Set<number>()
     for (const p of players) {
@@ -182,7 +222,17 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
       if (!rp) {
         const group = buildPlayerAvatar(p.n, p.id % 4)
         scene.add(group)
-        rp = { group, tx: p.x, tz: p.z, tyaw: p.yaw, hp: p.hp, down: p.down, name: p.n }
+        rp = {
+          group,
+          tx: p.x,
+          tz: p.z,
+          tyaw: p.yaw,
+          hp: p.hp,
+          down: p.down,
+          name: p.n,
+          relic: false,
+          ghost: false,
+        }
         remotePlayers.set(p.id, rp)
         group.position.set(p.x, 0, p.z)
       }
@@ -191,6 +241,11 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
       rp.tyaw = p.yaw
       rp.hp = p.hp
       rp.down = p.down
+      rp.relic = !!p.r
+      if (!!p.inv !== rp.ghost) {
+        rp.ghost = !!p.inv
+        setGhost(rp.group, rp.ghost)
+      }
       rp.group.scale.y = p.down ? 0.3 : 1
     }
     for (const [id, rp] of remotePlayers) {
@@ -257,6 +312,37 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
     exitPos = m.exit as { x: number; z: number }
     setBlackout()
   })
+  net.on('relicTaken', (m) => {
+    if (relicMesh) {
+      scene.remove(relicMesh)
+      relicMesh = null
+    }
+    if (m.by === me.id) {
+      hasRelic = true
+      banner("👁 LEGENDARY — THE WANDERER'S EYE WILL SAVE YOU ONCE", 5000)
+      sfx.tapeChime()
+    } else {
+      banner('SOMEONE FOUND THE EYE', 2500)
+    }
+    updateRoster()
+  })
+  net.on('relicSave', (m) => {
+    if (m.id === me.id) {
+      hasRelic = false
+      invisUntil = performance.now() + 12000
+      banner('THE EYE BURNS — NOTHING CAN SEE YOU', 4000)
+      sfx.whisper()
+      sfx.tapeChime()
+      shake = 0.6
+    } else {
+      banner("THE EYE SAVED A WANDERER", 2500)
+    }
+    updateRoster()
+  })
+  net.on('seen', () => {
+    sfx.staticBurst(0.6, 0.1)
+    banner('something tall has noticed you', 2200)
+  })
   net.on('reveal', () => {
     sfx.stinger()
     banner('THAT IS NOT YOUR FRIEND', 2000)
@@ -295,6 +381,9 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
       tapes.set(t.id, g)
     }
     tapesLeft = (m.tapes as unknown[]).length
+    placeRelicMesh(m.relic as { x: number; z: number })
+    hasRelic = false
+    invisUntil = 0
     const spawn = m.spawn as { x: number; z: number }
     me.x = spawn.x
     me.z = spawn.z
@@ -354,6 +443,12 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
         if (nearTape !== null) {
           text = keyHint('\u{1F4FC} GRAB TAPE')
           if (controls.consumeInteract()) net.send({ t: 'grab', tape: nearTape })
+        } else if (
+          relicMesh &&
+          Math.hypot(relicMesh.position.x - me.x, relicMesh.position.z - me.z) < 2.4
+        ) {
+          text = keyHint('👁 TAKE THE EYE')
+          if (controls.consumeInteract()) net.send({ t: 'relicGrab' })
         } else {
           // downed teammate
           let target: number | null = null
@@ -483,6 +578,23 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
     }
     sfx.setHeartbeat(nearestDanger < 18 ? 1 - nearestDanger / 18 : 0)
 
+    // relic spin + invisibility timer
+    if (relicMesh) {
+      const eye = relicMesh.getObjectByName('relic')!
+      eye.rotation.y = now * 0.0015
+      eye.position.y = 1.1 + Math.sin(now * 0.0025) * 0.1
+      relicMesh.getObjectByName('iris')!.position.y = eye.position.y
+    }
+    const invisible = invisUntil > now
+    const cross = el('crosshair')
+    cross.textContent = invisible ? '◉' : '+'
+    cross.style.color = invisible ? '#ffd84a' : ''
+    if (invisUntil !== 0 && !invisible) {
+      invisUntil = 0
+      banner("THE EYE'S GIFT FADES — YOU ARE SEEN AGAIN", 3000)
+      sfx.staticBurst(0.4, 0.08)
+    }
+
     // tapes bob + spin
     for (const g of tapes.values()) {
       const tape = g.getObjectByName('tape')!
@@ -550,6 +662,18 @@ export function startGame(net: Net, init: ServerMsg, myName: string) {
       }
       case 'skinstealer': {
         rc.group.position.y = moving ? Math.abs(Math.sin(now * 0.012)) * 0.06 : 0
+        break
+      }
+      case 'stilter': {
+        // slow deliberate strides, head swaying near the ceiling
+        let i = 0
+        rc.group.traverse((o) => {
+          if (o.name === 'stiltleg') {
+            o.rotation.x = moving ? Math.sin(now * 0.004 + i * (Math.PI / 2)) * 0.22 : 0
+            i++
+          }
+        })
+        rc.group.rotation.z = Math.sin(now * 0.0021) * 0.04
         break
       }
       case 'watcher': {

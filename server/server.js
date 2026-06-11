@@ -87,8 +87,10 @@ function createRoom(code) {
     over: false,
     spawnTimer: 0,
     emptySince: 0,
+    relic: null,
   }
   placeTapes(room)
+  placeRelic(room)
   rooms.set(code, room)
   return room
 }
@@ -107,9 +109,17 @@ function placeTapes(room) {
   }
 }
 
+// One legendary per game: THE WANDERER'S EYE. Whoever carries it is saved
+// exactly once — the hit that should have landed instead burns the relic and
+// turns the carrier invisible to every creature for 12 seconds.
+function placeRelic(room) {
+  const [gx, gy] = pickReachableCell(room.reachable, 22, 42)
+  room.relic = { x: cellCenter(gx), z: cellCenter(gy), taken: false }
+}
+
 // --- creatures ---------------------------------------------------------------
 
-const CREATURE_KINDS = ['hound', 'smiler', 'skinstealer', 'watcher']
+const CREATURE_KINDS = ['hound', 'smiler', 'skinstealer', 'watcher', 'stilter']
 
 function spawnCreature(room, kind, x, z, extra = {}) {
   const c = {
@@ -134,10 +144,19 @@ function alivePlayers(room) {
   return [...room.players.values()].filter((p) => !p.down)
 }
 
+function isInvisible(p) {
+  return p.invisUntil && p.invisUntil > Date.now()
+}
+
+// Players the creatures can actually perceive.
+function targetablePlayers(room) {
+  return alivePlayers(room).filter((p) => !isInvisible(p))
+}
+
 function nearestPlayer(room, x, z) {
   let best = null
   let bestD = Infinity
-  for (const p of alivePlayers(room)) {
+  for (const p of targetablePlayers(room)) {
     const d = (p.x - x) ** 2 + (p.z - z) ** 2
     if (d < bestD) {
       bestD = d
@@ -196,8 +215,15 @@ function stepToward(room, c, tx, tz, speed, dt) {
 }
 
 function tryAttack(room, c, target, dist, range, damage) {
-  if (dist > range || c.attackCd > 0 || target.down) return false
+  if (dist > range || c.attackCd > 0 || target.down || isInvisible(target)) return false
   c.attackCd = 1.2
+  // The Wanderer's Eye spends itself to save its carrier.
+  if (target.relic) {
+    target.relic = false
+    target.invisUntil = Date.now() + 12_000
+    broadcast(room, { t: 'relicSave', id: target.id })
+    return false
+  }
   target.hp = Math.max(0, target.hp - damage)
   send(target, { t: 'hit', hp: target.hp, by: c.kind })
   if (target.hp <= 0) {
@@ -294,11 +320,38 @@ function tickCreature(room, c, dt) {
       }
       break
     }
+    case 'stilter': {
+      // The tall thing on stilts. Walking pace, never faster — but once it
+      // has seen you it does not lose the trail, walls or no walls. Outrun
+      // it or feed it a teammate.
+      if (c.state === 'hunt') {
+        const target = room.players.get(c.target)
+        if (!target || target.down || isInvisible(target)) {
+          c.state = 'wander'
+          break
+        }
+        const d = Math.hypot(target.x - c.x, target.z - c.z)
+        if (d > 50) {
+          c.state = 'wander'
+          break
+        }
+        stepToward(room, c, target.x, target.z, 3.1, dt)
+        tryAttack(room, c, target, d, 1.7, 45)
+      } else {
+        wander(room, c, 1.8, dt)
+        if (near && near.dist < 32 && hasLineOfSight(room.seed, c.x, c.z, near.p.x, near.p.z)) {
+          c.state = 'hunt'
+          c.target = near.p.id
+          send(near.p, { t: 'seen' })
+        }
+      }
+      break
+    }
     case 'watcher': {
       // A still silhouette at the edge of the light. Stare too long and it
       // is suddenly right behind you.
       c.state = 'still'
-      for (const p of alivePlayers(room)) {
+      for (const p of targetablePlayers(room)) {
         const dx = c.x - p.x
         const dz = c.z - p.z
         const dist = Math.hypot(dx, dz)
@@ -392,15 +445,19 @@ function resetRoom(room) {
   room.exit = null
   room.over = false
   placeTapes(room)
+  placeRelic(room)
   for (const p of room.players.values()) {
     p.hp = 100
     p.down = false
+    p.relic = false
+    p.invisUntil = 0
     p.x = SPAWN_POINT.x
     p.z = SPAWN_POINT.z
   }
   broadcast(room, {
     t: 'reset',
     tapes: room.tapes.map((tp) => ({ id: tp.id, x: tp.x, z: tp.z })),
+    relic: { x: room.relic.x, z: room.relic.z },
     spawn: SPAWN_POINT,
   })
 }
@@ -430,6 +487,8 @@ function snapshot(room) {
       hp: p.hp,
       down: p.down,
       light: p.light,
+      r: p.relic ? 1 : 0,
+      inv: isInvisible(p) ? 1 : 0,
     })),
     creatures: [...room.creatures.values()]
       .filter((c) => !(c.kind === 'crawler' && c.state === 'hide'))
@@ -472,6 +531,14 @@ function handleMessage(room, p, msg) {
       }
       broadcast(room, { t: 'tape', id: tape.id, by: p.id, left: room.tapesLeft })
       if (room.tapesLeft === 0) startBlackout(room)
+      break
+    }
+    case 'relicGrab': {
+      if (!room.relic || room.relic.taken || p.down) break
+      if (Math.hypot(room.relic.x - p.x, room.relic.z - p.z) > 3) break
+      room.relic.taken = true
+      p.relic = true
+      broadcast(room, { t: 'relicTaken', by: p.id })
       break
     }
     case 'revive': {
@@ -572,6 +639,8 @@ wss.on('connection', (ws) => {
         hp: 100,
         down: false,
         light: true,
+        relic: false,
+        invisUntil: 0,
       }
       room.players.set(player.id, player)
       send(player, {
@@ -584,6 +653,7 @@ wss.on('connection', (ws) => {
         tapesLeft: room.tapesLeft,
         blackout: room.blackout,
         exit: room.exit,
+        relic: room.relic.taken ? null : { x: room.relic.x, z: room.relic.z },
       })
       broadcast(room, { t: 'joined', id: player.id, n: player.name })
       return
